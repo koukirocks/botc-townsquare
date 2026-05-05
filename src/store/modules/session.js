@@ -17,7 +17,9 @@ const state = () => ({
   isReconnecting: false,
   playerCount: 0,
   ping: 0,
+  connectedPlayers: [],
   playerId: "",
+  playerName: "",
   claimedSeat: -1,
   nomination: false,
   votes: [],
@@ -27,7 +29,10 @@ const state = () => ({
   voteHistory: [],
   markedPlayer: -1,
   isVoteHistoryAllowed: true,
-  isRolesDistributed: false
+  isRolesDistributed: false,
+  isSendBluffsWithRoles: false,
+  showcaseToken: "",
+  sharedGrimViewers: [],
 });
 
 const getters = {};
@@ -35,23 +40,29 @@ const getters = {};
 const actions = {};
 
 // mutations helper functions
-const set = key => (state, val) => {
+const set = (key) => (state, val) => {
   state[key] = val;
 };
 
 const mutations = {
   setPlayerId: set("playerId"),
+  setPlayerName: set("playerName"),
   setSpectator: set("isSpectator"),
   setReconnecting: set("isReconnecting"),
   setPlayerCount: set("playerCount"),
+  setConnectedPlayers: set("connectedPlayers"),
   setPing: set("ping"),
   setVotingSpeed: set("votingSpeed"),
   setVoteInProgress: set("isVoteInProgress"),
   setMarkedPlayer: set("markedPlayer"),
   setNomination: set("nomination"),
   setVoteHistoryAllowed: set("isVoteHistoryAllowed"),
+  setShowcaseToken: set("showcaseToken"),
   claimSeat: set("claimedSeat"),
+  setClaimedSeat: set("claimedSeat"),
   distributeRoles: set("isRolesDistributed"),
+  setSendBluffsWithRoles: set("isSendBluffsWithRoles"),
+  setSharedGrimViewers: set("sharedGrimViewers"),
   setSessionId(state, sessionId) {
     state.sessionId = sessionId
       .toLocaleLowerCase()
@@ -60,7 +71,7 @@ const mutations = {
   },
   nomination(
     state,
-    { nomination, votes, votingSpeed, lockedVote, isVoteInProgress } = {}
+    { nomination, votes, votingSpeed, lockedVote, isVoteInProgress } = {},
   ) {
     state.nomination = nomination || false;
     state.votes = votes || [];
@@ -84,11 +95,11 @@ const mutations = {
       nominee: players[state.nomination[1]].name,
       type: isExile ? "Exile" : "Execution",
       majority: Math.ceil(
-        players.filter(player => !player.isDead || isExile).length / 2
+        players.filter((player) => !player.isDead || isExile).length / 2,
       ),
       votes: players
         .filter((player, index) => state.votes[index])
-        .map(({ name }) => name)
+        .map(({ name }) => name),
     });
   },
   clearVoteHistory(state) {
@@ -104,7 +115,17 @@ const mutations = {
   voteSync: handleVote,
   lockVote(state, lock) {
     state.lockedVote = lock !== undefined ? lock : state.lockedVote + 1;
-  }
+  },
+  toggleSharedGrimViewer(state, playerId) {
+    if (!state.sharedGrimViewers) {
+      state.sharedGrimViewers = [];
+    }
+    if (state.sharedGrimViewers.includes(playerId)) {
+      state.sharedGrimViewers = state.sharedGrimViewers.filter(id => id !== playerId);
+    } else {
+      state.sharedGrimViewers.push(playerId);
+    }
+  },
 };
 
 export default {
@@ -112,5 +133,5 @@ export default {
   state,
   getters,
   actions,
-  mutations
+  mutations,
 };

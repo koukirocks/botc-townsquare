@@ -5,12 +5,12 @@
     tabindex="-1"
     :class="{
       night: grimoire.isNight,
-      static: grimoire.isStatic
+      static: grimoire.isStatic,
     }"
     :style="{
       backgroundImage: grimoire.background
         ? `url('${grimoire.background}')`
-        : ''
+        : '',
     }"
   >
     <video
@@ -35,6 +35,9 @@
     <NightOrderModal />
     <VoteHistoryModal />
     <GameStateModal />
+    <PlayerListModal />
+    <TokenShowcaseModal />
+    <TokenShowcase />
     <Gradients />
     <span id="version">v{{ version }}</span>
   </div>
@@ -56,9 +59,15 @@ import NightOrderModal from "./components/modals/NightOrderModal";
 import FabledModal from "@/components/modals/FabledModal";
 import VoteHistoryModal from "@/components/modals/VoteHistoryModal";
 import GameStateModal from "@/components/modals/GameStateModal";
+import PlayerListModal from "@/components/modals/PlayerListModal";
+import TokenShowcaseModal from "@/components/modals/TokenShowcaseModal";
+import TokenShowcase from "@/components/TokenShowcase";
 
 export default {
   components: {
+    TokenShowcase,
+    TokenShowcaseModal,
+    PlayerListModal,
     GameStateModal,
     VoteHistoryModal,
     FabledModal,
@@ -71,15 +80,15 @@ export default {
     Menu,
     EditionModal,
     RolesModal,
-    Gradients
+    Gradients,
   },
   computed: {
     ...mapState(["grimoire", "session"]),
-    ...mapState("players", ["players"])
+    ...mapState("players", ["players"]),
   },
   data() {
     return {
-      version
+      version,
     };
   },
   methods: {
@@ -112,6 +121,9 @@ export default {
           if (this.session.isSpectator) return;
           this.$store.commit("toggleModal", "roles");
           break;
+        case "t":
+          this.$store.commit("toggleModal", "tokenShowcase");
+          break;
         case "v":
           if (this.session.voteHistory.length || !this.session.isSpectator) {
             this.$store.commit("toggleModal", "voteHistory");
@@ -122,10 +134,14 @@ export default {
           this.$refs.menu.toggleNight();
           break;
         case "escape":
+          if (this.session.showcaseToken) {
+            this.$store.commit("session/setShowcaseToken", "");
+            return;
+          }
           this.$store.commit("toggleModal");
       }
-    }
-  }
+    },
+  },
 };
 </script>
 
@@ -135,7 +151,8 @@ export default {
 @font-face {
   font-family: "Papyrus";
   src: url("assets/fonts/papyrus.eot"); /* IE9*/
-  src: url("assets/fonts/papyrus.eot?#iefix") format("embedded-opentype"),
+  src:
+    url("assets/fonts/papyrus.eot?#iefix") format("embedded-opentype"),
     /* IE6-IE8 */ url("assets/fonts/papyrus.woff2") format("woff2"),
     /* chrome firefox */ url("assets/fonts/papyrus.woff") format("woff"),
     /* chrome firefox */ url("assets/fonts/papyrus.ttf") format("truetype"),
@@ -258,13 +275,12 @@ ul {
   padding: 0;
   border: solid 0.125em transparent;
   border-radius: 15px;
-  box-shadow: inset 0 1px 1px #9c9c9c, 0 0 10px #000;
-  background: radial-gradient(
-        at 0 -15%,
-        rgba(#fff, 0.07) 70%,
-        rgba(#fff, 0) 71%
-      )
-      0 0/ 80% 90% no-repeat content-box,
+  box-shadow:
+    inset 0 1px 1px #9c9c9c,
+    0 0 10px #000;
+  background:
+    radial-gradient(at 0 -15%, rgba(#fff, 0.07) 70%, rgba(#fff, 0) 71%) 0 0/ 80%
+      90% no-repeat content-box,
     linear-gradient(#4e4e4e, #040404) content-box,
     linear-gradient(#292929, #010101) border-box;
   color: white;
@@ -291,7 +307,8 @@ ul {
     height: 10px;
   }
   &.townsfolk {
-    background: radial-gradient(
+    background:
+      radial-gradient(
           at 0 -15%,
           rgba(255, 255, 255, 0.07) 70%,
           rgba(255, 255, 255, 0) 71%
@@ -299,13 +316,16 @@ ul {
         0 0/80% 90% no-repeat content-box,
       linear-gradient(#0031ad, rgba(5, 0, 0, 0.22)) content-box,
       linear-gradient(#292929, #001142) border-box;
-    box-shadow: inset 0 1px 1px #002c9c, 0 0 10px #000;
+    box-shadow:
+      inset 0 1px 1px #002c9c,
+      0 0 10px #000;
     &:hover:not(.disabled) {
       color: #008cf7;
     }
   }
   &.demon {
-    background: radial-gradient(
+    background:
+      radial-gradient(
           at 0 -15%,
           rgba(255, 255, 255, 0.07) 70%,
           rgba(255, 255, 255, 0) 71%
@@ -313,7 +333,9 @@ ul {
         0 0/80% 90% no-repeat content-box,
       linear-gradient(#ad0000, rgba(5, 0, 0, 0.22)) content-box,
       linear-gradient(#292929, #420000) border-box;
-    box-shadow: inset 0 1px 1px #9c0000, 0 0 10px #000;
+    box-shadow:
+      inset 0 1px 1px #9c0000,
+      0 0 10px #000;
   }
 }
 

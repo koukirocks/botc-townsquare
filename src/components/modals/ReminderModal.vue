@@ -18,10 +18,12 @@
             backgroundImage: `url(${
               reminder.image && grimoire.isImageOptIn
                 ? reminder.image
-                : require('../../assets/icons/' +
-                    (reminder.imageAlt || reminder.role) +
-                    '.png')
-            })`
+                : require(
+                    '../../assets/icons/' +
+                      (reminder.imageAlt || reminder.role) +
+                      '.png',
+                  )
+            })`,
           }"
         ></span>
         <span class="text">{{ reminder.name }}</span>
@@ -39,12 +41,14 @@ import { mapMutations, mapState } from "vuex";
  * @param role The role for which the reminder should be generated
  * @return {function(*): {image: string|string[]|string|*, role: *, name: *, imageAlt: string|*}}
  */
-const mapReminder = ({ id, image, imageAlt }) => name => ({
-  role: id,
-  image,
-  imageAlt,
-  name
-});
+const mapReminder =
+  ({ id, image, imageAlt }) =>
+  (name) => ({
+    role: id,
+    image,
+    imageAlt,
+    name,
+  });
 
 export default {
   components: { Modal },
@@ -53,31 +57,31 @@ export default {
     availableReminders() {
       let reminders = [];
       const { players, bluffs } = this.$store.state.players;
-      this.$store.state.roles.forEach(role => {
+      this.$store.state.roles.forEach((role) => {
         // add reminders from player roles
-        if (players.some(p => p.role.id === role.id)) {
+        if (players.some((p) => p.role.id === role.id)) {
           reminders = [...reminders, ...role.reminders.map(mapReminder(role))];
         }
         // add reminders from bluff/other roles
-        else if (bluffs.some(bluff => bluff.id === role.id)) {
+        else if (bluffs.some((bluff) => bluff.id === role.id)) {
           reminders = [...reminders, ...role.reminders.map(mapReminder(role))];
         }
         // add global reminders
         if (role.remindersGlobal && role.remindersGlobal.length) {
           reminders = [
             ...reminders,
-            ...role.remindersGlobal.map(mapReminder(role))
+            ...role.remindersGlobal.map(mapReminder(role)),
           ];
         }
       });
       // add fabled reminders
-      this.$store.state.players.fabled.forEach(role => {
+      this.$store.state.players.fabled.forEach((role) => {
         reminders = [...reminders, ...role.reminders.map(mapReminder(role))];
       });
 
       // add out of script traveler reminders
-      this.$store.state.otherTravelers.forEach(role => {
-        if (players.some(p => p.role.id === role.id)) {
+      this.$store.state.otherTravelers.forEach((role) => {
+        if (players.some((p) => p.role.id === role.id)) {
           reminders = [...reminders, ...role.reminders.map(mapReminder(role))];
         }
       });
@@ -88,7 +92,7 @@ export default {
       return reminders;
     },
     ...mapState(["modals", "grimoire"]),
-    ...mapState("players", ["players"])
+    ...mapState("players", ["players"]),
   },
   methods: {
     addReminder(reminder) {
@@ -104,12 +108,12 @@ export default {
       this.$store.commit("players/update", {
         player,
         property: "reminders",
-        value
+        value,
       });
       this.$store.commit("toggleModal", "reminder");
     },
-    ...mapMutations(["toggleModal"])
-  }
+    ...mapMutations(["toggleModal"]),
+  },
 };
 </script>
 
@@ -155,6 +159,51 @@ ul.reminders .reminder {
 
   &:hover {
     transform: scale(1.2);
+  }
+}
+
+@media screen and (max-width: 767.98px) {
+  ul.reminders {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+  }
+
+  ul.reminders .reminder {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    max-width: 84px;
+    max-height: none;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+
+    .text {
+      font-size: 62%;
+    }
+  }
+}
+
+@media screen and (max-width: 767.98px) and (orientation: landscape) {
+  ul.reminders {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  ul.reminders .reminder {
+    max-width: 68px;
+  }
+}
+
+@media screen and (max-width: 575.98px) {
+  ul.reminders {
+    gap: 6px;
+  }
+
+  ul.reminders .reminder {
+    width: 100%;
   }
 }
 </style>

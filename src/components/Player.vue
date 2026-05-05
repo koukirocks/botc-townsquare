@@ -1,5 +1,5 @@
 <template>
-  <li :style="zoom">
+  <li :style="zoom" @mouseenter="hoverTime = Date.now()">
     <div
       ref="player"
       class="player"
@@ -10,9 +10,9 @@
           'no-vote': player.isVoteless,
           you: session.sessionId && player.id && player.id === session.playerId,
           'vote-yes': session.votes[index],
-          'vote-lock': voteLocked
+          'vote-lock': voteLocked,
         },
-        player.role.team
+        player.role.team,
       ]"
     >
       <div class="shroud" @click="toggleStatus()"></div>
@@ -121,15 +121,12 @@
             @click="changePronouns"
             v-if="
               !session.isSpectator ||
-                (session.isSpectator && player.id === session.playerId)
+              (session.isSpectator && player.id === session.playerId)
             "
           >
             <font-awesome-icon icon="venus-mars" />Change Pronouns
           </li>
           <template v-if="!session.isSpectator">
-            <li @click="changeName">
-              <font-awesome-icon icon="user-edit" />Rename
-            </li>
             <li @click="movePlayer()" :class="{ disabled: session.lockedVote }">
               <font-awesome-icon icon="redo-alt" />
               Move player
@@ -162,9 +159,7 @@
             :class="{ disabled: player.id && player.id !== session.playerId }"
           >
             <font-awesome-icon icon="chair" />
-            <template v-if="!player.id">
-              Claim seat
-            </template>
+            <template v-if="!player.id"> Claim seat </template>
             <template v-else-if="player.id === session.playerId">
               Vacate seat
             </template>
@@ -188,16 +183,18 @@
             backgroundImage: `url(${
               reminder.image && grimoire.isImageOptIn
                 ? reminder.image
-                : require('../assets/icons/' +
-                    (reminder.imageAlt || reminder.role) +
-                    '.png')
-            })`
+                : require(
+                    '../assets/icons/' +
+                      (reminder.imageAlt || reminder.role) +
+                      '.png',
+                  )
+            })`,
           }"
         ></span>
         <span class="text">{{ reminder.name }}</span>
       </div>
     </template>
-    <div class="reminder add" @click="$emit('trigger', ['openReminderModal'])">
+    <div class="reminder add" @click="Date.now() - hoverTime > 50 && $emit('trigger', ['openReminderModal'])">
       <span class="icon"></span>
     </div>
     <div class="reminderHoverTarget"></div>
@@ -210,22 +207,22 @@ import { mapGetters, mapState } from "vuex";
 
 export default {
   components: {
-    Token
+    Token,
   },
   props: {
     player: {
       type: Object,
-      required: true
-    }
+      required: true,
+    },
   },
   computed: {
     ...mapState("players", ["players"]),
     ...mapState(["grimoire", "session"]),
     ...mapGetters({ nightOrder: "players/nightOrder" }),
-    index: function() {
+    index: function () {
       return this.players.indexOf(this.player);
     },
-    voteLocked: function() {
+    voteLocked: function () {
       const session = this.session;
       const players = this.players.length;
       if (!session.nomination) return false;
@@ -233,8 +230,8 @@ export default {
         (this.index - 1 + players - session.nomination[1]) % players;
       return indexAdjusted < session.lockedVote - 1;
     },
-    zoom: function() {
-      const unit = window.innerWidth > window.innerHeight ? "vh" : "vw";
+    zoom: function () {
+      const unit = this.viewportWidth > this.viewportHeight ? "vh" : "vw";
       if (this.players.length < 7) {
         return { width: 18 + this.grimoire.zoom + unit };
       } else if (this.players.length <= 10) {
@@ -244,15 +241,28 @@ export default {
       } else {
         return { width: 12 + this.grimoire.zoom + unit };
       }
-    }
+    },
   },
   data() {
     return {
+      hoverTime: 0,
       isMenuOpen: false,
-      isSwap: false
+      isSwap: false,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
     };
   },
+  mounted() {
+    window.addEventListener("resize", this.updateViewport, { passive: true });
+  },
+  beforeDestroy() {
+    window.removeEventListener("resize", this.updateViewport);
+  },
   methods: {
+    updateViewport() {
+      this.viewportWidth = window.innerWidth;
+      this.viewportHeight = window.innerHeight;
+    },
     changePronouns() {
       if (this.session.isSpectator && this.player.id !== this.session.playerId)
         return;
@@ -285,12 +295,8 @@ export default {
         }
       }
     },
-    changeName() {
-      if (this.session.isSpectator) return;
-      const name = prompt("Player name", this.player.name) || this.player.name;
-      this.updatePlayer("name", name, true);
-    },
     removeReminder(reminder) {
+      if (Date.now() - this.hoverTime < 50) return;
       const reminders = [...this.player.reminders];
       reminders.splice(this.player.reminders.indexOf(reminder), 1);
       this.updatePlayer("reminders", reminders, true);
@@ -299,13 +305,14 @@ export default {
       if (
         this.session.isSpectator &&
         property !== "reminders" &&
-        property !== "pronouns"
+        property !== "pronouns" &&
+        !(property === "name" && this.player.id === this.session.playerId)
       )
         return;
       this.$store.commit("players/update", {
         player: this.player,
         property,
-        value
+        value,
       });
       if (closeMenu) {
         this.isMenuOpen = false;
@@ -342,10 +349,10 @@ export default {
       if (!this.voteLocked) return;
       this.$store.commit("session/voteSync", [
         this.index,
-        !this.session.votes[this.index]
+        !this.session.votes[this.index],
       ]);
-    }
-  }
+    },
+  },
 };
 </script>
 
@@ -375,10 +382,10 @@ export default {
 
   .shroud {
     top: 0;
-    left: 0;
+    left: 20%;
     position: absolute;
-    width: 100%;
-    height: 45%;
+    width: 60%;
+    height: 30%;
     cursor: pointer;
     transform: rotateX(0deg);
     transform-origin: top center;
@@ -391,11 +398,11 @@ export default {
       background: url("../assets/shroud.png") center -10px no-repeat;
       background-size: auto 110%;
       position: absolute;
-      margin-left: -50%;
-      width: 100%;
-      height: 100%;
+      margin-left: -83.33%;
+      width: 166.66%;
+      height: 150%;
       left: 50%;
-      top: -30%;
+      top: -45%;
       opacity: 0;
       transform: perspective(400px) scale(1.5);
       transform-origin: top center;
@@ -851,7 +858,7 @@ li.move:not(.from) .player .overlay svg.move {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 5px 0 0 -25%;
+  margin: -5% 0 0 -25%;
   border-radius: 50%;
   border: 3px solid black;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
@@ -869,7 +876,11 @@ li.move:not(.from) .player .overlay svg.move {
     width: 100%;
     position: absolute;
     top: 15%;
-    text-shadow: 0 1px 1px #f6dfbd, 0 -1px 1px #f6dfbd, 1px 0 1px #f6dfbd,
+    pointer-events: none;
+    text-shadow:
+      0 1px 1px #f6dfbd,
+      0 -1px 1px #f6dfbd,
+      1px 0 1px #f6dfbd,
       -1px 0 1px #f6dfbd;
   }
 
@@ -895,7 +906,6 @@ li.move:not(.from) .player .overlay svg.move {
 
   &.add {
     opacity: 0;
-    top: 30px;
     &:after {
       display: none;
     }
@@ -930,20 +940,25 @@ li.move:not(.from) .player .overlay svg.move {
 }
 
 .circle .reminderHoverTarget {
-  opacity: 0;
-  width: calc(50% + 8px);
-  padding-top: calc(50% + 38px);
-  margin-top: calc(-25% - 33px);
-  margin-left: calc(-25% - 1px);
-  border-radius: 0 0 999px 999px;
-  pointer-events: auto;
-  transform: none !important;
+  display: none !important;
+}
+
+.circle .reminder:not(.add):before {
+  content: " ";
+  position: absolute;
+  top: -15px;
+  left: 0;
+  width: 100%;
+  height: calc(100% + 30px);
   z-index: -1;
+  border-radius: 0;
+  pointer-events: auto;
+  background: transparent;
+  transform: rotate(var(--rot));
 }
 
 .circle li:hover .reminder.add {
   opacity: 1;
-  top: 0;
 }
 .circle li:hover .reminder.add:before {
   opacity: 1;
@@ -952,5 +967,14 @@ li.move:not(.from) .player .overlay svg.move {
 #townsquare.public .reminder {
   opacity: 0;
   pointer-events: none;
+}
+
+.circle li:not(:hover) .reminder {
+  margin-top: -40%;
+  z-index: 1;
+}
+
+.circle li:not(:hover) .player + .reminder {
+  margin-top: -25%;
 }
 </style>

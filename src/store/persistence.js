@@ -1,5 +1,5 @@
-module.exports = store => {
-  const updatePagetitle = isPublic =>
+module.exports = (store) => {
+  const updatePagetitle = (isPublic) =>
     (document.title = `Blood on the Clocktower ${
       isPublic ? "Town Square" : "Grimoire"
     }`);
@@ -36,37 +36,53 @@ module.exports = store => {
     JSON.parse(localStorage.bluffs).forEach((role, index) => {
       store.commit("players/setBluff", {
         index,
-        role: store.state.roles.get(role) || {}
+        role: store.state.roles.get(role) || {},
       });
     });
   }
   if (localStorage.fabled !== undefined) {
     store.commit("players/setFabled", {
       fabled: JSON.parse(localStorage.fabled).map(
-        fabled => store.state.fabled.get(fabled.id) || fabled
-      )
+        (fabled) => store.state.fabled.get(fabled.id) || fabled,
+      ),
     });
   }
   if (localStorage.players) {
     store.commit(
       "players/set",
-      JSON.parse(localStorage.players).map(player => ({
+      JSON.parse(localStorage.players).map((player) => ({
         ...player,
         role:
           store.state.roles.get(player.role) ||
           store.getters.rolesJSONbyId.get(player.role) ||
-          {}
-      }))
+          {},
+      })),
     );
   }
   /**** Session related data *****/
   if (localStorage.getItem("playerId")) {
     store.commit("session/setPlayerId", localStorage.getItem("playerId"));
   }
+  if (localStorage.getItem("playerName")) {
+    store.commit("session/setPlayerName", localStorage.getItem("playerName"));
+  }
   if (localStorage.getItem("session") && !window.location.hash.substr(1)) {
     const [spectator, sessionId] = JSON.parse(localStorage.getItem("session"));
     store.commit("session/setSpectator", spectator);
     store.commit("session/setSessionId", sessionId);
+  }
+  if (localStorage.getItem("sendBluffsWithRoles")) {
+    store.commit("session/setSendBluffsWithRoles", true);
+  }
+  if (localStorage.getItem("sharedGrimViewers")) {
+    try {
+      const viewers = JSON.parse(localStorage.getItem("sharedGrimViewers"));
+      if (Array.isArray(viewers)) {
+        store.commit("session/setSharedGrimViewers", viewers);
+      }
+    } catch (e) {
+      console.warn("Failed to parse sharedGrimViewers", e);
+    }
   }
 
   // listen to mutations
@@ -131,23 +147,24 @@ module.exports = store => {
       case "players/setBluff":
         localStorage.setItem(
           "bluffs",
-          JSON.stringify(state.players.bluffs.map(({ id }) => id))
+          JSON.stringify(state.players.bluffs.map(({ id }) => id)),
         );
         break;
       case "players/setFabled":
         localStorage.setItem(
           "fabled",
           JSON.stringify(
-            state.players.fabled.map(fabled =>
-              fabled.isCustom ? fabled : { id: fabled.id }
-            )
-          )
+            state.players.fabled.map((fabled) =>
+              fabled.isCustom ? fabled : { id: fabled.id },
+            ),
+          ),
         );
         break;
       case "players/add":
       case "players/update":
       case "players/remove":
       case "players/clear":
+      case "players/clearSeats":
       case "players/set":
       case "players/swap":
       case "players/move":
@@ -155,12 +172,12 @@ module.exports = store => {
           localStorage.setItem(
             "players",
             JSON.stringify(
-              state.players.players.map(player => ({
+              state.players.players.map((player) => ({
                 ...player,
                 // simplify the stored data
-                role: player.role.id || {}
-              }))
-            )
+                role: player.role.id || {},
+              })),
+            ),
           );
         } else {
           localStorage.removeItem("players");
@@ -170,7 +187,7 @@ module.exports = store => {
         if (payload) {
           localStorage.setItem(
             "session",
-            JSON.stringify([state.session.isSpectator, payload])
+            JSON.stringify([state.session.isSpectator, payload]),
           );
         } else {
           localStorage.removeItem("session");
@@ -181,6 +198,27 @@ module.exports = store => {
           localStorage.setItem("playerId", payload);
         } else {
           localStorage.removeItem("playerId");
+        }
+        break;
+      case "session/setPlayerName":
+        if (payload) {
+          localStorage.setItem("playerName", payload);
+        } else {
+          localStorage.removeItem("playerName");
+        }
+        break;
+      case "session/setSendBluffsWithRoles":
+        if (payload) {
+          localStorage.setItem("sendBluffsWithRoles", 1);
+        } else {
+          localStorage.removeItem("sendBluffsWithRoles");
+        }
+        break;
+      case "session/toggleSharedGrimViewer":
+        if (state.session.sharedGrimViewers && state.session.sharedGrimViewers.length > 0) {
+          localStorage.setItem("sharedGrimViewers", JSON.stringify(state.session.sharedGrimViewers));
+        } else {
+          localStorage.removeItem("sharedGrimViewers");
         }
         break;
     }

@@ -4,11 +4,9 @@
       class="nomlog-summary"
       v-show="session.voteHistory.length && session.sessionId"
       @click="toggleModal('voteHistory')"
-      :title="
-        `${session.voteHistory.length} recent ${
-          session.voteHistory.length == 1 ? 'nomination' : 'nominations'
-        }`
-      "
+      :title="`${session.voteHistory.length} recent ${
+        session.voteHistory.length == 1 ? 'nomination' : 'nominations'
+      }`"
     >
       <font-awesome-icon icon="book-dead" />
       {{ session.voteHistory.length }}
@@ -17,15 +15,13 @@
       class="session"
       :class="{
         spectator: session.isSpectator,
-        reconnecting: session.isReconnecting
+        reconnecting: session.isReconnecting,
       }"
       v-if="session.sessionId"
       @click="leaveSession"
-      :title="
-        `${session.playerCount} other players in this session${
-          session.ping ? ' (' + session.ping + 'ms latency)' : ''
-        }`
-      "
+      :title="`${session.playerCount} other players in this session${
+        session.ping ? ' (' + session.ping + 'ms latency)' : ''
+      }`"
     >
       <font-awesome-icon icon="broadcast-tower" />
       {{ session.playerCount }}
@@ -64,7 +60,7 @@
               <font-awesome-icon
                 :icon="[
                   'fas',
-                  grimoire.isNightOrder ? 'check-square' : 'square'
+                  grimoire.isNightOrder ? 'check-square' : 'square',
                 ]"
               />
             </em>
@@ -85,7 +81,7 @@
           </li>
           <li @click="setBackground">
             Background image
-            <em><font-awesome-icon icon="image"/></em>
+            <em><font-awesome-icon icon="image" /></em>
           </li>
           <li v-if="!edition.isOfficial" @click="imageOptIn">
             <small>Show Custom Images</small>
@@ -93,7 +89,7 @@
               ><font-awesome-icon
                 :icon="[
                   'fas',
-                  grimoire.isImageOptIn ? 'check-square' : 'square'
+                  grimoire.isImageOptIn ? 'check-square' : 'square',
                 ]"
             /></em>
           </li>
@@ -118,9 +114,7 @@
           <li class="headline" v-if="session.sessionId">
             {{ session.isSpectator ? "Playing" : "Hosting" }}
           </li>
-          <li class="headline" v-else>
-            Live Session
-          </li>
+          <li class="headline" v-else>Live Session</li>
           <template v-if="!session.sessionId">
             <li @click="hostSession">Host (Storyteller)<em>[H]</em></li>
             <li @click="joinSession">Join (Player)<em>[J]</em></li>
@@ -130,13 +124,31 @@
               Delay to {{ session.isSpectator ? "host" : "players" }}
               <em>{{ session.ping }}ms</em>
             </li>
+            <li @click="toggleModal('playerList')">
+              Player list
+              <em><font-awesome-icon icon="users" /></em>
+            </li>
             <li @click="copySessionUrl">
               Copy player link
-              <em><font-awesome-icon icon="copy"/></em>
+              <em><font-awesome-icon icon="copy" /></em>
             </li>
             <li v-if="!session.isSpectator" @click="distributeRoles">
               Send Characters
-              <em><font-awesome-icon icon="theater-masks"/></em>
+              <em><font-awesome-icon icon="theater-masks" /></em>
+            </li>
+            <li
+              v-if="!session.isSpectator"
+              @click="$store.commit('session/setSendBluffsWithRoles', !session.isSendBluffsWithRoles)"
+            >
+              Include Demon bluffs
+              <em>
+                <font-awesome-icon
+                  :icon="[
+                    'fas',
+                    session.isSendBluffsWithRoles ? 'check-square' : 'square',
+                  ]"
+                />
+              </em>
             </li>
             <li
               v-if="session.voteHistory.length || !session.isSpectator"
@@ -157,11 +169,11 @@
           <li @click="addPlayer" v-if="players.length < 20">Add<em>[A]</em></li>
           <li @click="randomizeSeatings" v-if="players.length > 2">
             Randomize
-            <em><font-awesome-icon icon="dice"/></em>
+            <em><font-awesome-icon icon="dice" /></em>
           </li>
           <li @click="clearPlayers" v-if="players.length">
             Remove all
-            <em><font-awesome-icon icon="trash-alt"/></em>
+            <em><font-awesome-icon icon="trash-alt" /></em>
           </li>
         </template>
 
@@ -181,11 +193,19 @@
           </li>
           <li v-if="!session.isSpectator" @click="toggleModal('fabled')">
             Add Fabled
-            <em><font-awesome-icon icon="dragon"/></em>
+            <em><font-awesome-icon icon="dragon" /></em>
+          </li>
+          <li @click="toggleModal('tokenShowcase')">
+            Show Fullscreen Token
+            <em>[T]</em>
+          </li>
+          <li v-if="session.showcaseToken" @click="clearShowcasedToken">
+            Clear Fullscreen Token
+            <em><font-awesome-icon icon="times-circle" /></em>
           </li>
           <li @click="clearRoles" v-if="players.length">
             Remove all
-            <em><font-awesome-icon icon="trash-alt"/></em>
+            <em><font-awesome-icon icon="trash-alt" /></em>
           </li>
         </template>
 
@@ -202,7 +222,7 @@
           </li>
           <li @click="toggleModal('gameState')">
             Game State JSON
-            <em><font-awesome-icon icon="file-code"/></em>
+            <em><font-awesome-icon icon="file-code" /></em>
           </li>
           <li>
             <a href="https://discord.gg/Gd7ybwWbFk" target="_blank">
@@ -236,11 +256,11 @@ import { mapMutations, mapState } from "vuex";
 export default {
   computed: {
     ...mapState(["grimoire", "session", "edition"]),
-    ...mapState("players", ["players"])
+    ...mapState("players", ["players"]),
   },
   data() {
     return {
-      tab: "grimoire"
+      tab: "grimoire",
     };
   },
   methods: {
@@ -254,9 +274,10 @@ export default {
       if (this.session.sessionId) return;
       const sessionId = prompt(
         "Enter a channel number / name for your session",
-        Math.round(Math.random() * 10000)
+        Math.round(Math.random() * 10000),
       );
       if (sessionId) {
+        this.$store.commit("players/clearSeats");
         this.$store.commit("session/clearVoteHistory");
         this.$store.commit("session/setSpectator", false);
         this.$store.commit("session/setSessionId", sessionId);
@@ -278,7 +299,7 @@ export default {
           (() => {
             this.$store.commit("session/distributeRoles", false);
           }).bind(this),
-          2000
+          2000,
         );
       }
     },
@@ -292,12 +313,21 @@ export default {
     joinSession() {
       if (this.session.sessionId) return this.leaveSession();
       let sessionId = prompt(
-        "Enter the channel number / name of the session you want to join"
+        "Enter the channel number / name of the session you want to join",
       );
+      if (!sessionId) return;
       if (sessionId.match(/^https?:\/\//i)) {
         sessionId = sessionId.split("#").pop();
       }
+      if (!sessionId) return;
+
+      const currentName = this.session.playerName || "";
+      const enteredName = prompt("Enter your player name", currentName);
+      if (enteredName === null) return;
+      const preferredName = enteredName.trim() || currentName;
+      if (!preferredName) return;
       if (sessionId) {
+        this.$store.commit("session/setPlayerName", preferredName);
         this.$store.commit("session/clearVoteHistory");
         this.$store.commit("session/setSpectator", true);
         this.$store.commit("toggleGrimoire", false);
@@ -306,6 +336,7 @@ export default {
     },
     leaveSession() {
       if (confirm("Are you sure you want to leave the active live game?")) {
+        this.$store.commit("players/clearSeats");
         this.$store.commit("session/setSpectator", false);
         this.$store.commit("session/setSessionId", "");
       }
@@ -339,6 +370,9 @@ export default {
         this.$store.dispatch("players/clearRoles");
       }
     },
+    clearShowcasedToken() {
+      this.$store.commit("session/setShowcaseToken", "");
+    },
     toggleNight() {
       this.$store.commit("toggleNight");
       if (this.grimoire.isNight) {
@@ -353,9 +387,9 @@ export default {
       "toggleNightOrder",
       "toggleStatic",
       "setZoom",
-      "toggleModal"
-    ])
-  }
+      "toggleModal",
+    ]),
+  },
 };
 </script>
 

@@ -31,16 +31,16 @@
 
 <script>
 export default {
-  data: function() {
+  data: function () {
     return {
-      isMaximized: false
+      isMaximized: false,
     };
   },
   methods: {
     close() {
       this.$emit("close");
-    }
-  }
+    },
+  },
 };
 </script>
 
@@ -67,6 +67,7 @@ export default {
   flex-direction: column;
   max-height: 80%;
   max-width: 80%;
+  overflow-x: hidden;
 
   .vote-history &,
   .night-reference &,
@@ -100,6 +101,7 @@ export default {
     > .top-right-button {
       cursor: pointer;
       width: 28px;
+      height: 28px;
       &:hover {
         color: red;
       }
@@ -109,6 +111,7 @@ export default {
   > .slot {
     max-height: 100%;
     position: initial;
+    overflow-x: hidden;
   }
 }
 
@@ -138,5 +141,42 @@ export default {
 .modal-fade-enter-active,
 .modal-fade-leave-active {
   transition: opacity 0.2s ease;
+}
+
+@media screen and (max-width: 767.98px) {
+  .modal-backdrop {
+    align-items: flex-start;
+    padding: 12px 8px;
+  }
+
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100vh - 24px);
+    min-height: 0;
+    padding: 12px;
+    border-radius: 12px;
+
+    .roles &,
+    .characters & {
+      max-height: 100%;
+      max-width: 100%;
+    }
+
+    > .top-right-buttons {
+      top: 10px;
+      right: 10px;
+      > .top-right-button {
+        width: 30px;
+        height: 30px;
+      }
+    }
+
+    > .slot {
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-top: 30px;
+    }
+  }
 }
 </style>

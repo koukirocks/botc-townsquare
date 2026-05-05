@@ -1,5 +1,9 @@
 <template>
-  <Modal v-if="modals.role && availableRoles.length" @close="close">
+  <Modal
+    class="characters role-modal"
+    v-if="modals.role && availableRoles.length"
+    @close="close"
+  >
     <h3>
       Choose a new character for
       {{
@@ -60,12 +64,12 @@ export default {
     availableRoles() {
       const availableRoles = [];
       const players = this.$store.state.players.players;
-      this.$store.state.roles.forEach(role => {
+      this.$store.state.roles.forEach((role) => {
         // don't show bluff roles that are already assigned to players
         if (
           this.playerIndex >= 0 ||
           (this.playerIndex < 0 &&
-            !players.some(player => player.role.id === role.id))
+            !players.some((player) => player.role.id === role.id))
         ) {
           availableRoles.push(role);
         }
@@ -75,11 +79,11 @@ export default {
     },
     ...mapState(["modals", "roles", "session"]),
     ...mapState("players", ["players"]),
-    ...mapState(["otherTravelers"])
+    ...mapState(["otherTravelers"]),
   },
   data() {
     return {
-      tab: "editionRoles"
+      tab: "editionRoles",
     };
   },
   methods: {
@@ -88,7 +92,7 @@ export default {
         // assign to bluff slot (index < 0)
         this.$store.commit("players/setBluff", {
           index: this.playerIndex * -1 - 1,
-          role
+          role,
         });
       } else {
         if (this.session.isSpectator && role.team === "traveler") return;
@@ -97,7 +101,7 @@ export default {
         this.$store.commit("players/update", {
           player,
           property: "role",
-          value: role
+          value: role,
         });
       }
       this.tab = "editionRoles";
@@ -107,34 +111,54 @@ export default {
       this.tab = "editionRoles";
       this.toggleModal("role");
     },
-    ...mapMutations(["toggleModal"])
-  }
+    ...mapMutations(["toggleModal"]),
+  },
 };
 </script>
 
 <style scoped lang="scss">
 @import "../../vars.scss";
 
+ul.tokens {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 10px 0;
+  margin: 0;
+}
+
 ul.tokens li {
   border-radius: 50%;
-  width: 6vw;
-  margin: 1%;
+  width: 8vw;
+  margin: 1.5%;
   transition: transform 500ms ease;
 
   &.townsfolk {
-    box-shadow: 0 0 10px $townsfolk, 0 0 10px #004cff;
+    box-shadow:
+      0 0 10px $townsfolk,
+      0 0 10px #004cff;
   }
   &.outsider {
-    box-shadow: 0 0 10px $outsider, 0 0 10px $outsider;
+    box-shadow:
+      0 0 10px $outsider,
+      0 0 10px $outsider;
   }
   &.minion {
-    box-shadow: 0 0 10px $minion, 0 0 10px $minion;
+    box-shadow:
+      0 0 10px $minion,
+      0 0 10px $minion;
   }
   &.demon {
-    box-shadow: 0 0 10px $demon, 0 0 10px $demon;
+    box-shadow:
+      0 0 10px $demon,
+      0 0 10px $demon;
   }
   &.traveler {
-    box-shadow: 0 0 10px $traveler, 0 0 10px $traveler;
+    box-shadow:
+      0 0 10px $traveler,
+      0 0 10px $traveler;
   }
   &:hover {
     transform: scale(1.2);
@@ -144,5 +168,78 @@ ul.tokens li {
 
 #townsquare.spectator ul.tokens li.traveler {
   display: none;
+}
+
+.button-group {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+  width: 100%;
+  margin-top: 15px;
+
+  .button {
+    flex: 1 1 calc(50% - 15px);
+    min-width: 150px;
+    text-align: center;
+  }
+}
+
+@media screen and (max-width: 767.98px) {
+  h3 {
+    font-size: 1.3em;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+}
+
+/* Tablets / smaller desktops */
+@media screen and (max-width: 1200px) {
+  ul.tokens li {
+    width: 12vw;
+    margin: 1.5%;
+  }
+}
+
+@media screen and (max-width: 767.98px) {
+  ul.tokens {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    padding: 8px 0;
+  }
+
+  ul.tokens li {
+    width: 100%;
+    margin: 0;
+  }
+}
+
+@media screen and (max-width: 767.98px) and (orientation: landscape) {
+  ul.tokens {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+  }
+}
+
+/* Small Phones */
+@media screen and (max-width: 575.98px) {
+  ul.tokens {
+    gap: 6px;
+  }
+
+  ul.tokens li {
+    width: 100%;
+    margin: 0;
+  }
+
+  .button-group {
+    gap: 10px;
+  }
+
+  .button-group .button {
+    min-width: 130px;
+    font-size: 0.9em;
+  }
 }
 </style>

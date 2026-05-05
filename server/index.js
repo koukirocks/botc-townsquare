@@ -1,5 +1,8 @@
 const fs = require("fs");
+const path = require("path");
 const https = require("https");
+const http = require("http");
+const express = require("express");
 const WebSocket = require("ws");
 const client = require("prom-client");
 
@@ -12,21 +15,16 @@ register.setDefaultLabels({
 
 const PING_INTERVAL = 30000; // 30 seconds
 
-const options = {};
+let server;
+const app = express();
 
-if (process.env.NODE_ENV !== "development") {
-  options.cert = fs.readFileSync("cert.pem");
-  options.key = fs.readFileSync("key.pem");
-}
+app.use(express.static(path.join(__dirname, "../dist")));
 
-const server = https.createServer(options);
+server = http.createServer(app);
+
 const wss = new WebSocket.Server({
-  ...(process.env.NODE_ENV === "development" ? { port: 8081 } : { server }),
-  verifyClient: info =>
-    info.origin &&
-    !!info.origin.match(
-      /^https?:\/\/([^.]+\.github\.io|localhost|clocktower\.online|eddbra1nprivatetownsquare\.xyz)/i
-    )
+  server,
+  verifyClient: info => true // Allow all connections since it's a personal server now
 });
 
 function noop() {}
@@ -249,12 +247,14 @@ wss.on("close", function close() {
   clearInterval(interval);
 });
 
-// prod mode with stats API
-if (process.env.NODE_ENV !== "development") {
-  console.log("server starting");
-  server.listen(8080);
-  server.on("request", (req, res) => {
-    res.setHeader("Content-Type", register.contentType);
-    register.metrics().then(out => res.end(out));
-  });
-}
+console.log("Starting unified server...");
+const PORT = process.env.PORT || 8080;
+server.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
+});
+
+// Stats API
+app.get("/metrics", (req, res) => {
+  res.setHeader("Content-Type", register.contentType);
+  register.metrics().then(out => res.end(out));
+});
