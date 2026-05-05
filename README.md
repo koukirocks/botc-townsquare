@@ -95,6 +95,51 @@ For base game characters, it is sufficient to only provide the ID, similar to wh
   _Note_: if you create a custom Fabled character, it will be automatically added to the game when the custom script is loaded
 - **ability**: the displayed ability text of the character
 
+## How to Run Locally
+
+If you want to run this project on your own computer, follow these steps:
+
+1. Ensure you have [Node.js](https://nodejs.org/) installed (v12+ recommended).
+2. Clone this repository and open the folder in your terminal.
+3. Install dependencies by running:
+   ```shell
+   npm install
+   ```
+4. Start the frontend development server:
+   ```shell
+   npm run serve
+   ```
+5. In a second terminal window, start the live session backend server:
+   ```shell
+   cd server
+   NODE_ENV=development node index.js
+   ```
+
+You can now access your local instance in your browser. Check your terminal output for the exact link (usually `http://localhost:8080` or `http://localhost:8081`).
+
+## How to Share Your Local Instance (trycloudflare)
+
+To easily share your locally running instance with players across the internet without setting up port forwarding or an actual live server, you can use a Cloudflare Tunnel:
+
+1. Once your frontend and backend are both running (as described above), open a new terminal window.
+2. Run the `cloudflared` quick tunnel command pointing to your frontend's local port (e.g., `8080` or `8081`):
+   ```shell
+   npx cloudflared tunnel --url http://localhost:8080
+   ```
+3. Cloudflare will output an automatically generated URL (e.g., `https://random-words.trycloudflare.com`). Send this URL to your players! The WebSockets from the server will work through this link.
+
+## How to Use a Permanent Custom Domain
+
+If you want a permanent link rather than a random `trycloudflare` link, but don't want to pay for a 24/7 server, you can configure Cloudflare to point a custom domain to your local machine on-demand. 
+
+**Note:** For this to work, your domain's DNS must be managed by Cloudflare. You will need to add your domain to a free Cloudflare account and change your domain registrar's nameservers to the ones Cloudflare provides.
+
+1. Ensure you have the `cloudflared` CLI installed.
+2. Login to Cloudflare via terminal: `cloudflared tunnel login`.
+3. Create a named tunnel: `cloudflared tunnel create botc-game`.
+4. Route your custom domain to that tunnel: `cloudflared tunnel route dns botc-game [insert your domain]`.
+5. Now, instead of opening three terminals every time, you can just run the included **`launch.bat`** (on Windows) to instantly start the server and boot up the custom domain tunnel simultaneously!
+
 ## [Code of Conduct](CODE_OF_CONDUCT.md)
 
 ## [Contributing](CONTRIBUTING.md)
