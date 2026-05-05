@@ -1,21 +1,13 @@
-# Blood on the Clocktower Grimoire & Town Square
+# Blood on the Clocktower Grimoire & Town Square (Improved Version)
 
-> :warning: **This project is no longer actively maintained** and will only receive critical bug fixes. :warning:
+This is a **vibe-coded, improved version** of the unofficial online tool to run Blood on the Clocktower games through Discord or other digital means. 
+I have taken the original project and improved upon it with some vibe coding.
 
-![social](https://user-images.githubusercontent.com/325521/102897760-d1147b00-4468-11eb-9d7b-63a204bc9fc1.png)
+I DO NOT UNDERSTAND THE PROGRAMMING LANGUAGE USED IN THE ORIGINAL PROJECT. BUGS ARE EXPECTED.
 
-This is an unofficial online tool to run Blood on the Clocktower games through Discord or other digital means.
-It is supposed to aid storytellers and players by allowing them to quickly set up games, run votes and much more.
+It helps storytellers and players by allowing them to quickly set up games, run votes, and much more.
 
-[You can try it online!](https://clocktower.online)
-
-If you want to learn more about how to use the app as a player, [JayBotC](https://www.youtube.com/channel/UCNZy-4Rp877XtTHaIZdWYFQ) kindly created two tutorial videos.
-
-### How to host a game
-[![How to host a game](https://img.youtube.com/vi/lVRJPBXfqxg/0.jpg)](https://www.youtube.com/watch?v=lVRJPBXfqxg)
-
-### How to play a game
-[![How to play a game](https://img.youtube.com/vi/VCpFnJFiCbk/0.jpg)](https://www.youtube.com/watch?v=VCpFnJFiCbk)
+[You can try the original version online!](https://clocktower.online)
 
 ## Features
 
@@ -118,7 +110,3 @@ For base game characters, it is sufficient to only provide the ID, similar to wh
 
 This project and its website are provided free of charge and not affiliated with The Pandemonium Institute in any way.
 
-## Donations
-This project will always be available free of charge, since I love building cool things and playing Blood on the Clocktower. If you still want to support me with a donation, you can do that here:
-
-[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/bra1n)
