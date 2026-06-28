@@ -138,7 +138,28 @@ If you want a permanent link rather than a random `trycloudflare` link, but don'
 2. Login to Cloudflare via terminal: `cloudflared tunnel login`.
 3. Create a named tunnel: `cloudflared tunnel create botc-game`.
 4. Route your custom domain to that tunnel: `cloudflared tunnel route dns botc-game [insert your domain]`.
-5. Now, instead of opening three terminals every time, you can just run the included **`launch.bat`** (on Windows) to instantly start the server and boot up the custom domain tunnel simultaneously!
+5. Configure the tunnel to send each hostname to the correct local port. If you use a local Cloudflare config file, add both hostnames under `ingress`:
+
+   ```yaml
+   tunnel: botc-game
+   credentials-file: C:\Users\YOUR_USER\.cloudflared\YOUR_TUNNEL_ID.json
+
+   ingress:
+     - hostname: koukirocks.qzz.io
+       service: http://localhost:8080
+     - hostname: gamerule.koukirocks.qzz.io
+       service: http://localhost:8081
+     - service: http_status:404
+   ```
+
+   Then make sure both DNS routes exist:
+
+   ```shell
+   cloudflared tunnel route dns botc-game koukirocks.qzz.io
+   cloudflared tunnel route dns botc-game gamerule.koukirocks.qzz.io
+   ```
+
+   After that, you can run the included **`launch.bat`** (on Windows) to start both local servers and the tunnel.
 
 ## [Code of Conduct](CODE_OF_CONDUCT.md)
 

@@ -1,2 +1,0 @@
-make the note token beside the main tokens collapse when not 1.hovered(desktop) or 2.clicked once(mobile)
-They should collapse with respect to their original orientation. You should check for any bugs before declaring job done.
