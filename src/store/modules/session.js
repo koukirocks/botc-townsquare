@@ -3,12 +3,13 @@
  * If the vote is from a seat that is already locked, ignore it.
  * @param state session state
  * @param index seat of the player in the circle
- * @param vote true or false
+ * @param vote number of votes (0, 1, or 2)
  */
 const handleVote = (state, [index, vote]) => {
   if (!state.nomination) return;
   state.votes = [...state.votes];
-  state.votes[index] = vote === undefined ? !state.votes[index] : vote;
+  state.votes[index] =
+    vote === undefined ? Math.abs((state.votes[index] || 0) - 1) : vote;
 };
 
 const state = () => ({
@@ -25,10 +26,13 @@ const state = () => ({
   votes: [],
   lockedVote: 0,
   votingSpeed: 3000,
+  allowSelfNaming: true,
   isVoteInProgress: false,
   voteHistory: [],
   markedPlayer: -1,
   isVoteHistoryAllowed: true,
+  isVoteWatchingAllowed: true,
+  isTwoVotesEnabled: false,
   isRolesDistributed: false,
   isSendBluffsWithRoles: false,
   showcaseToken: "",
@@ -52,10 +56,13 @@ const mutations = {
   setConnectedPlayers: set("connectedPlayers"),
   setPing: set("ping"),
   setVotingSpeed: set("votingSpeed"),
+  setAllowSelfNaming: set("allowSelfNaming"),
   setVoteInProgress: set("isVoteInProgress"),
   setMarkedPlayer: set("markedPlayer"),
   setNomination: set("nomination"),
   setVoteHistoryAllowed: set("isVoteHistoryAllowed"),
+  setVoteWatchingAllowed: set("isVoteWatchingAllowed"),
+  setTwoVotesEnabled: set("isTwoVotesEnabled"),
   setShowcaseToken: set("showcaseToken"),
   claimSeat: set("claimedSeat"),
   setClaimedSeat: set("claimedSeat"),
@@ -86,7 +93,15 @@ const mutations = {
   addHistory(state, players) {
     if (!state.isVoteHistoryAllowed && state.isSpectator) return;
     if (!state.nomination || state.lockedVote <= players.length) return;
-    const isExile = players[state.nomination[1]].role.team === "traveler";
+    const isExile =
+      players[state.nomination[1]].role.team === "traveler" ||
+      players[state.nomination[1]].role.team === "traveller";
+    const votes = [];
+    for (let index = 0; index < players.length; index++) {
+      for (let count = 0; count < (state.votes[index] || 0); count++) {
+        votes.push(players[index].name);
+      }
+    }
     state.voteHistory.push({
       timestamp: new Date(),
       nominator: players[state.nomination[0]].name,
@@ -95,9 +110,7 @@ const mutations = {
       majority: Math.ceil(
         players.filter((player) => !player.isDead || isExile).length / 2,
       ),
-      votes: players
-        .filter((player, index) => state.votes[index])
-        .map(({ name }) => name),
+      votes,
     });
   },
   clearVoteHistory(state) {

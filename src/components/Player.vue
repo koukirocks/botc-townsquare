@@ -7,9 +7,16 @@
         {
           dead: player.isDead,
           marked: session.markedPlayer === index,
+          'hand-raised': player.handRaised,
           'no-vote': player.isVoteless,
           you: session.sessionId && player.id && player.id === session.playerId,
           'vote-yes': session.votes[index],
+          'vote-twice': session.votes[index] === 2,
+          'vote-hidden':
+            session.isSpectator &&
+            !session.isVoteWatchingAllowed &&
+            (session.isVoteInProgress || session.lockedVote >= 1) &&
+            player.id !== session.playerId,
           'vote-lock': voteLocked,
         },
         player.role.team,
@@ -117,6 +124,22 @@
 
       <transition name="fold">
         <ul class="menu" v-if="isMenuOpen">
+          <li
+            v-if="
+              session.isSpectator &&
+              player.id === session.playerId &&
+              !session.nomination
+            "
+            @click="raiseHand"
+          >
+            <font-awesome-icon icon="hand-paper" /> Raise hand
+          </li>
+          <li
+            v-if="!session.isSpectator && session.isTwoVotesEnabled"
+            @click="updatePlayer('hasTwoVotes', !player.hasTwoVotes, true)"
+          >
+            <font-awesome-icon icon="hand-paper" /> Has two votes
+          </li>
           <li
             @click="changePronouns"
             v-if="
@@ -323,6 +346,7 @@ export default {
         this.session.isSpectator &&
         property !== "reminders" &&
         property !== "pronouns" &&
+        property !== "handRaised" &&
         !(property === "name" && this.player.id === this.session.playerId)
       )
         return;
@@ -366,8 +390,13 @@ export default {
       if (!this.voteLocked) return;
       this.$store.commit("session/voteSync", [
         this.index,
-        !this.session.votes[this.index],
+        this.session.votes[this.index] ? 0 : 1,
       ]);
+    },
+    raiseHand() {
+      if (!this.session.isSpectator || this.player.id !== this.session.playerId)
+        return;
+      this.updatePlayer("handRaised", !this.player.handRaised, true);
     },
   },
 };
@@ -589,6 +618,16 @@ export default {
   transform: scale(1);
 }
 
+#townsquare.vote .player.vote-hidden .overlay svg.vote {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+#townsquare.vote .player.vote-twice .overlay svg.vote.fa-hand-paper {
+  opacity: 0.5;
+  transform: scale(1);
+}
+
 // you voted yes | a locked vote yes | a locked vote no
 #townsquare.vote .player.you.vote-yes .overlay svg.vote.fa-hand-paper,
 #townsquare.vote .player.vote-lock.vote-yes .overlay svg.vote.fa-hand-paper,
@@ -617,6 +656,24 @@ li.move:not(.from) .player .overlay svg.move {
 }
 
 /****** Vote icon ********/
+.player .hand {
+  display: none;
+  color: $townsfolk;
+  filter: drop-shadow(0 0 3px black);
+  z-index: 3;
+}
+
+.player.hand-raised .hand {
+  display: block;
+  position: absolute;
+  top: 4%;
+  right: 4%;
+}
+
+.player.two-votes .token {
+  filter: drop-shadow(0 0 5px $demon);
+}
+
 .player .has-vote {
   color: #fff;
   filter: drop-shadow(0 0 3px black);

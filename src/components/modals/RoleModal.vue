@@ -15,7 +15,7 @@
     <ul class="tokens" v-if="tab === 'editionRoles' || !otherTravelers.size">
       <li
         v-for="role in availableRoles"
-        :class="[role.team]"
+        :class="[role.team, { match: queryMatches(role.name) }]"
         :key="role.id"
         @click="setRole(role)"
       >
@@ -25,7 +25,7 @@
     <ul class="tokens" v-if="tab === 'otherTravelers' && otherTravelers.size">
       <li
         v-for="role in otherTravelers.values()"
-        :class="[role.team]"
+        :class="[role.team, { match: queryMatches(role.name) }]"
         :key="role.id"
         @click="setRole(role)"
       >
@@ -49,6 +49,13 @@
         >Other Travelers</span
       >
     </div>
+    <input
+      ref="searchInput"
+      class="role-search"
+      placeholder="Search characters"
+      v-model="query"
+      @keyup="keyup"
+    />
   </Modal>
 </template>
 
@@ -84,6 +91,7 @@ export default {
   data() {
     return {
       tab: "editionRoles",
+      query: "",
     };
   },
   methods: {
@@ -107,11 +115,38 @@ export default {
       this.tab = "editionRoles";
       this.$store.commit("toggleModal", "role");
     },
+    queryMatches(name) {
+      const simplify = (value) =>
+        (value || "").replace(/[^a-z0-9]/gi, "").toLowerCase();
+      return simplify(name).startsWith(simplify(this.query));
+    },
+    keyup(event) {
+      if (event.key === "Escape" || event.key === "Esc") return;
+      event.stopPropagation();
+      if (event.key !== "Enter") return;
+
+      const roles =
+        this.tab === "otherTravelers" && this.otherTravelers.size
+          ? [...this.otherTravelers.values()]
+          : this.availableRoles;
+      const matches = roles.filter((role) => this.queryMatches(role.name));
+      if (matches.length === 1) this.setRole(matches[0]);
+    },
     close() {
       this.tab = "editionRoles";
+      this.query = "";
       this.toggleModal("role");
     },
     ...mapMutations(["toggleModal"]),
+  },
+  watch: {
+    "modals.role"(shown) {
+      if (shown) {
+        this.tab = "editionRoles";
+        this.query = "";
+        this.$nextTick(() => this.$refs.searchInput.focus());
+      }
+    },
   },
 };
 </script>
@@ -164,6 +199,9 @@ ul.tokens li {
     transform: scale(1.2);
     z-index: 10;
   }
+  &:not(.match) {
+    opacity: 0.4;
+  }
 }
 
 #townsquare.spectator ul.tokens li.traveler {
@@ -182,6 +220,23 @@ ul.tokens li {
     flex: 1 1 calc(50% - 15px);
     min-width: 150px;
     text-align: center;
+  }
+}
+input.role-search {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 4px 0;
+  background: transparent;
+  border: solid white;
+  border-width: 0 0 1px;
+  outline: none;
+  color: white;
+  font-size: 1em;
+  touch-action: none;
+
+  &::placeholder {
+    color: #bbb;
   }
 }
 

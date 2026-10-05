@@ -168,6 +168,7 @@ class LiveSession {
             this._store.state.players.players,
           );
         }
+
         this._store.commit("session/nomination", { nomination: params });
         break;
       case "swap":
@@ -195,6 +196,18 @@ class LiveSession {
         this._store.commit("session/setVoteHistoryAllowed", params);
         this._store.commit("session/clearVoteHistory");
         break;
+      case "isVoteWatchingAllowed":
+        if (!this._isSpectator) return;
+        this._store.commit("session/setVoteWatchingAllowed", params);
+        break;
+      case "isTwoVotesEnabled":
+        if (!this._isSpectator) return;
+        this._store.commit("session/setTwoVotesEnabled", params);
+        break;
+      case "allowSelfNaming":
+        if (!this._isSpectator) return;
+        this._store.commit("session/setAllowSelfNaming", params);
+        break;
       case "votingSpeed":
         if (!this._isSpectator) return;
         this._store.commit("session/setVotingSpeed", params);
@@ -206,6 +219,15 @@ class LiveSession {
       case "isVoteInProgress":
         if (!this._isSpectator) return;
         this._store.commit("session/setVoteInProgress", params);
+        break;
+      case "handRaised":
+        if (!this._isSpectator) return;
+        this._store.commit("players/update", {
+          player: this._store.state.players.players[params[0]],
+          property: "handRaised",
+          value: params[1],
+          isFromSockets: true,
+        });
         break;
       case "vote":
         this._handleVote(params);
@@ -283,6 +305,8 @@ class LiveSession {
       isDead: player.isDead,
       isVoteless: player.isVoteless,
       pronouns: player.pronouns,
+      connected: !player.id || !!this._players[player.id],
+      hasTwoVotes: !!player.hasTwoVotes,
       ...(player.role && player.role.team === "traveler"
         ? { roleId: player.role.id }
         : {}),
@@ -301,6 +325,9 @@ class LiveSession {
         gamestate: this._gamestate,
         isNight: grimoire.isNight,
         isVoteHistoryAllowed: session.isVoteHistoryAllowed,
+        isVoteWatchingAllowed: session.isVoteWatchingAllowed,
+        isTwoVotesEnabled: session.isTwoVotesEnabled,
+        allowSelfNaming: session.allowSelfNaming,
         nomination: session.nomination,
         votingSpeed: session.votingSpeed,
         lockedVote: session.lockedVote,
@@ -324,6 +351,9 @@ class LiveSession {
       isLightweight,
       isNight,
       isVoteHistoryAllowed,
+      isVoteWatchingAllowed,
+      isTwoVotesEnabled,
+      allowSelfNaming,
       nomination,
       votingSpeed,
       votes,
@@ -350,7 +380,15 @@ class LiveSession {
       const player = players[x];
       const { roleId } = state;
       // update relevant properties
-      ["name", "id", "isDead", "isVoteless", "pronouns"].forEach((property) => {
+      [
+        "name",
+        "id",
+        "isDead",
+        "isVoteless",
+        "pronouns",
+        "connected",
+        "hasTwoVotes",
+      ].forEach((property) => {
         const value = state[property];
         if (player[property] !== value) {
           this._store.commit("players/update", {
@@ -404,6 +442,18 @@ class LiveSession {
     if (!isLightweight) {
       this._store.commit("toggleNight", !!isNight);
       this._store.commit("session/setVoteHistoryAllowed", isVoteHistoryAllowed);
+      this._store.commit(
+        "session/setVoteWatchingAllowed",
+        isVoteWatchingAllowed === undefined ? true : isVoteWatchingAllowed,
+      );
+      this._store.commit(
+        "session/setTwoVotesEnabled",
+        isTwoVotesEnabled === undefined ? false : isTwoVotesEnabled,
+      );
+      this._store.commit(
+        "session/setAllowSelfNaming",
+        allowSelfNaming === undefined ? true : allowSelfNaming,
+      );
       this._store.commit("session/nomination", {
         nomination,
         votes,
@@ -553,9 +603,13 @@ class LiveSession {
    */
   sendPlayer({ player, property, value, isFromSockets }) {
     if (this._isSpectator) {
+      if (property === "handRaised") {
+        this.setHandRaised({ player, value, isFromSockets });
+        return;
+      }
       if (
         isFromSockets ||
-        property !== "name" ||
+        !["name", "handRaised"].includes(property) ||
         this._store.state.session.playerId !== player.id
       )
         return;
@@ -710,6 +764,9 @@ class LiveSession {
   _broadcastConnectedPlayers() {
     if (this._isSpectator) return;
     const seatedPlayers = this._store.state.players.players;
+    seatedPlayers.forEach((player) => {
+      player.connected = !player.id || !!this._players[player.id];
+    });
     const connectedPlayers = Object.keys(this._players).map((id) => {
       const seat = seatedPlayers.findIndex((player) => player.id === id);
       const seatedName = seat >= 0 ? seatedPlayers[seat].name : "";
@@ -721,6 +778,7 @@ class LiveSession {
     });
     this._store.commit("session/setConnectedPlayers", connectedPlayers);
     this._send("connectedPlayers", connectedPlayers);
+    this.sendGamestate("", true);
   }
 
   /**
@@ -959,6 +1017,32 @@ class LiveSession {
     );
   }
 
+  setVoteWatchingAllowed() {
+    if (this._isSpectator) return;
+    this._send(
+      "isVoteWatchingAllowed",
+      this._store.state.session.isVoteWatchingAllowed,
+    );
+  }
+
+  setTwoVotesEnabled() {
+    if (this._isSpectator) return;
+    this._send("isTwoVotesEnabled", this._store.state.session.isTwoVotesEnabled);
+  }
+
+  setAllowSelfNaming() {
+    if (this._isSpectator) return;
+    this._send("allowSelfNaming", this._store.state.session.allowSelfNaming);
+  }
+
+  setHandRaised({ player, value, isFromSockets }) {
+    if (isFromSockets) return;
+    if (this._isSpectator && this._store.state.session.playerId !== player.id)
+      return;
+    const index = this._store.state.players.players.indexOf(player);
+    if (index >= 0) this._send("handRaised", [index, value]);
+  }
+
   /**
    * Send the voting speed. ST only
    * @param votingSpeed voting speed in seconds, minimum 1
@@ -1163,6 +1247,15 @@ export default (store) => {
       case "session/setVoteHistoryAllowed":
         session.setVoteHistoryAllowed();
         break;
+      case "session/setVoteWatchingAllowed":
+        session.setVoteWatchingAllowed();
+        break;
+      case "session/setTwoVotesEnabled":
+        session.setTwoVotesEnabled();
+        break;
+      case "session/setAllowSelfNaming":
+        session.setAllowSelfNaming();
+        break;
       case "toggleNight":
         session.setIsNight();
         break;
@@ -1197,6 +1290,8 @@ export default (store) => {
       case "players/update":
         if (payload.property === "pronouns") {
           session.sendPlayerPronouns(payload);
+        } else if (payload.property === "handRaised") {
+          session.setHandRaised(payload);
         } else {
           session.sendPlayer(payload);
         }

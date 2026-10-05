@@ -10,11 +10,20 @@
       <em>{{ nominee.name }}</em
       >!
       <br />
-      <em class="blue">
-        {{ voters.length }} vote{{ voters.length !== 1 ? "s" : "" }}
-      </em>
-      in favor
-      <em v-if="nominee.role.team !== 'traveler'">
+      <template
+        v-if="
+          !session.isSpectator ||
+          session.isVoteWatchingAllowed ||
+          (!session.isVoteInProgress && session.lockedVote < 1)
+        "
+      >
+        <em class="blue">
+          {{ voteCount }} vote{{ voteCount !== 1 ? "s" : "" }}
+        </em>
+        in favor
+      </template>
+      <template v-else> The vote is secret </template>
+      <em v-if="nominee.role.team !== 'traveler' && nominee.role.team !== 'traveller'">
         (majority is {{ Math.ceil(alive / 2) }})
       </em>
       <em v-else>(majority is {{ Math.ceil(players.length / 2) }})</em>
@@ -55,7 +64,12 @@
           </template>
           <div class="button demon" @click="finish">Close</div>
         </div>
-        <div class="button-group mark" v-if="nominee.role.team !== 'traveler'">
+        <div
+          class="button-group mark"
+          v-if="
+            nominee.role.team !== 'traveler' && nominee.role.team !== 'traveller'
+          "
+        >
           <div
             class="button"
             :class="{
@@ -75,21 +89,32 @@
         <div class="button-group">
           <div
             class="button townsfolk"
-            @click="vote(false)"
+            @click="vote(0)"
             :class="{ disabled: !currentVote }"
           >
             Hand DOWN
           </div>
           <div
             class="button demon"
-            @click="vote(true)"
-            :class="{ disabled: currentVote }"
+            @click="vote(1)"
+            :class="{ disabled: currentVote === 1 }"
           >
             Hand UP
+          </div>
+          <div
+            class="button demon"
+            v-if="player.hasTwoVotes"
+            @click="vote(2)"
+            :class="{ disabled: currentVote === 2 }"
+          >
+            x2
           </div>
         </div>
       </template>
       <div v-else-if="!player">Please claim a seat to vote.</div>
+      <div v-else-if="player && player.connected === false">
+        Please reclaim your seat to vote.
+      </div>
     </div>
     <transition name="blur">
       <div
@@ -149,12 +174,17 @@ export default {
       const index = this.players.findIndex(
         (p) => p.id === this.session.playerId,
       );
-      return index >= 0 ? !!this.session.votes[index] : undefined;
+      return index >= 0 ? this.session.votes[index] || 0 : 0;
     },
     canVote: function () {
       if (!this.player) return false;
-      if (this.player.isVoteless && this.nominee.role.team !== "traveler")
+      if (
+        this.player.isVoteless &&
+        this.nominee.role.team !== "traveler" &&
+        this.nominee.role.team !== "traveller"
+      )
         return false;
+      if (this.player.connected === false) return false;
       const session = this.session;
       const players = this.players.length;
       const index = this.players.indexOf(this.player);
@@ -162,12 +192,12 @@ export default {
         (index - 1 + players - session.nomination[1]) % players;
       return indexAdjusted >= session.lockedVote - 1;
     },
-    voters: function () {
+    voteCount: function () {
       const nomination = this.session.nomination[1];
       const voters = Array(this.players.length)
-        .fill("")
+        .fill(0)
         .map((x, index) =>
-          this.session.votes[index] ? this.players[index].name : "",
+          this.session.votes[index] || 0,
         );
       const reorder = [
         ...voters.slice(nomination + 1),
@@ -177,7 +207,7 @@ export default {
         this.session.lockedVote
           ? reorder.slice(0, this.session.lockedVote - 1)
           : reorder
-      ).filter((n) => !!n);
+      ).reduce((total, vote) => total + vote, 0);
     },
   },
   data() {
@@ -235,7 +265,7 @@ export default {
       const index = this.players.findIndex(
         (p) => p.id === this.session.playerId,
       );
-      if (index >= 0 && !!this.session.votes[index] !== vote) {
+      if (index >= 0 && this.session.votes[index] !== vote) {
         this.$store.commit("session/voteSync", [index, vote]);
       }
     },

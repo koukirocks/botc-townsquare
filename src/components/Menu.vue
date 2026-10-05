@@ -152,6 +152,48 @@
               </em>
             </li>
             <li
+              v-if="!session.isSpectator"
+              @click="toggleSessionOption('isVoteWatchingAllowed')"
+            >
+              Show votes to players
+              <em>
+                <font-awesome-icon
+                  :icon="[
+                    'fas',
+                    session.isVoteWatchingAllowed ? 'check-square' : 'square',
+                  ]"
+                />
+              </em>
+            </li>
+            <li
+              v-if="!session.isSpectator"
+              @click="toggleSessionOption('isTwoVotesEnabled')"
+            >
+              Enable two votes
+              <em>
+                <font-awesome-icon
+                  :icon="[
+                    'fas',
+                    session.isTwoVotesEnabled ? 'check-square' : 'square',
+                  ]"
+                />
+              </em>
+            </li>
+            <li
+              v-if="!session.isSpectator"
+              @click="toggleSessionOption('allowSelfNaming')"
+            >
+              Allow player renaming
+              <em>
+                <font-awesome-icon
+                  :icon="[
+                    'fas',
+                    session.allowSelfNaming ? 'check-square' : 'square',
+                  ]"
+                />
+              </em>
+            </li>
+            <li
               v-if="session.voteHistory.length || !session.isSpectator"
               @click="toggleModal('voteHistory')"
             >
@@ -475,6 +517,10 @@ export default {
     },
     clearShowcasedToken() {
       this.$store.commit("session/setShowcaseToken", "");
+    },
+    toggleSessionOption(option) {
+      if (this.session.isSpectator) return;
+      this.$store.commit(`session/set${option[0].toUpperCase()}${option.slice(1)}`, !this.session[option]);
     },
     toggleNight() {
       this.$store.commit("toggleNight");

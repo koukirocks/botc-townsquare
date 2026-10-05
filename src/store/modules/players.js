@@ -6,6 +6,9 @@ const NEWPLAYER = {
   isVoteless: false,
   isDead: false,
   pronouns: "",
+  connected: false,
+  hasTwoVotes: false,
+  handRaised: false,
 };
 
 const state = () => ({
