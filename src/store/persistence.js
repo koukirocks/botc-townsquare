@@ -74,16 +74,7 @@ module.exports = (store) => {
   if (localStorage.getItem("sendBluffsWithRoles")) {
     store.commit("session/setSendBluffsWithRoles", true);
   }
-  if (localStorage.getItem("sharedGrimViewers")) {
-    try {
-      const viewers = JSON.parse(localStorage.getItem("sharedGrimViewers"));
-      if (Array.isArray(viewers)) {
-        store.commit("session/setSharedGrimViewers", viewers);
-      }
-    } catch (e) {
-      console.warn("Failed to parse sharedGrimViewers", e);
-    }
-  }
+  localStorage.removeItem("sharedGrimViewers");
 
   // listen to mutations
   store.subscribe(({ type, payload }, state) => {
@@ -212,13 +203,6 @@ module.exports = (store) => {
           localStorage.setItem("sendBluffsWithRoles", 1);
         } else {
           localStorage.removeItem("sendBluffsWithRoles");
-        }
-        break;
-      case "session/toggleSharedGrimViewer":
-        if (state.session.sharedGrimViewers && state.session.sharedGrimViewers.length > 0) {
-          localStorage.setItem("sharedGrimViewers", JSON.stringify(state.session.sharedGrimViewers));
-        } else {
-          localStorage.removeItem("sharedGrimViewers");
         }
         break;
     }

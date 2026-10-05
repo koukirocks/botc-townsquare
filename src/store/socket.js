@@ -288,10 +288,6 @@ class LiveSession {
         : {}),
     }));
 
-    if (playerId && this._store.state.session.sharedGrimViewers && this._store.state.session.sharedGrimViewers.includes(playerId)) {
-      this._broadcastSharedGrimTo(playerId);
-    }
-
     if (isLightweight) {
       this._sendDirect(playerId, "gs", {
         gamestate: this._gamestate,
@@ -1071,13 +1067,7 @@ class LiveSession {
    */
   _broadcastSharedGrimTo(playerIdInput = null) {
     if (this._isSpectator) return;
-    const viewers = this._store.state.session.sharedGrimViewers;
-    if (!viewers || viewers.length === 0) return;
-    
-    let targetViewers = viewers;
-    if (playerIdInput) {
-        targetViewers = [playerIdInput];
-    }
+    if (!playerIdInput) return;
     const data = {
         bluffs: this._store.state.players.bluffs.map(({ id }) => id),
         edition: this._store.state.edition.isOfficial
@@ -1103,9 +1093,7 @@ class LiveSession {
             markedPlayer: this._store.state.session.markedPlayer,
         }
     };
-    targetViewers.forEach(id => {
-        this._sendDirect(id, "sharedGrim", data);
-    });
+    this._sendDirect(playerIdInput, "sharedGrim", data);
   }
 
   /**
@@ -1201,8 +1189,8 @@ export default (store) => {
       case "players/add":
         session.sendGamestate("", true);
         break;
-      case "session/toggleSharedGrimViewer":
-        if (!session._isSpectator && state.session.sharedGrimViewers && state.session.sharedGrimViewers.includes(payload)) {
+      case "session/syncSharedGrimOnce":
+        if (!session._isSpectator) {
           session._broadcastSharedGrimTo(payload);
         }
         break;
@@ -1215,17 +1203,6 @@ export default (store) => {
         break;
     }
 
-    if (!session._isSpectator && state.session.sharedGrimViewers && state.session.sharedGrimViewers.length > 0) {
-       const syncTypes = [
-         "players/update", "players/set", "players/clear", "players/add", "players/remove", 
-         "players/swap", "players/move", "players/setBluff", "players/setFabled",
-         "session/nomination", "session/vote", "session/voteSync", "toggleNight", 
-         "setEdition", "session/setMarkedPlayer", "session/setVoteInProgress", "session/lockVote", "session/clearVoteHistory"
-       ];
-       if (syncTypes.includes(type)) {
-         session._broadcastSharedGrimTo();
-       }
-    }
   });
 
   // check for session Id in hash

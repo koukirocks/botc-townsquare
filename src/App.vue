@@ -1,3 +1,4 @@
+import ActionModal from "./components/modals/ActionModal";
 <template>
   <div
     id="app"
@@ -62,7 +63,6 @@ import GameStateModal from "@/components/modals/GameStateModal";
 import PlayerListModal from "@/components/modals/PlayerListModal";
 import TokenShowcaseModal from "@/components/modals/TokenShowcaseModal";
 import TokenShowcase from "@/components/TokenShowcase";
-
 export default {
   components: {
     TokenShowcase,

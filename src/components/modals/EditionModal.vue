@@ -76,6 +76,15 @@
           <font-awesome-icon icon="undo" /> Back
         </div>
       </div>
+      <ActionModal
+        v-if="urlDialog"
+        title="Load custom script"
+        message="Enter the URL of a custom-script.json file."
+        label="Script URL"
+        confirm-text="Load script"
+        @submit="loadURL"
+        @cancel="urlDialog = false"
+      />
     </div>
   </Modal>
 </template>
@@ -84,10 +93,12 @@
 import editionJSON from "../../editions";
 import { mapMutations, mapState } from "vuex";
 import Modal from "./Modal";
+import ActionModal from "./ActionModal";
 
 export default {
   components: {
     Modal,
+    ActionModal,
   },
   data: function () {
     return {
@@ -119,6 +130,7 @@ export default {
           "https://gist.githubusercontent.com/bra1n/1f65bd4a999524719d5dabe98c3c2d27/raw/22bbec6bf56a51a7459e5ae41ed47e41971c5445/VigormortisHighSchool.json",
         ],
       ],
+      urlDialog: false,
     };
   },
   computed: mapState(["modals"]),
@@ -143,10 +155,11 @@ export default {
       }
     },
     promptURL() {
-      const url = prompt("Enter URL to a custom-script.json file");
-      if (url) {
-        this.handleURL(url);
-      }
+      this.urlDialog = true;
+    },
+    loadURL(url) {
+      this.urlDialog = false;
+      if (url.trim()) this.handleURL(url.trim());
     },
     async handleURL(url) {
       const res = await fetch(url);

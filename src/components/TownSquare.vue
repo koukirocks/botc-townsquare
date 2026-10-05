@@ -83,6 +83,15 @@
 
     <ReminderModal :player-index="selectedPlayer"></ReminderModal>
     <RoleModal :player-index="selectedPlayer"></RoleModal>
+    <ActionModal
+      v-if="removeDialog"
+      title="Remove player?"
+      :message="`Remove ${players[selectedPlayer].name} from the town square?`"
+      confirm-text="Remove player"
+      :input="false"
+      @submit="confirmRemovePlayer"
+      @cancel="removeDialog = false"
+    />
   </div>
 </template>
 
@@ -92,6 +101,7 @@ import Player from "./Player";
 import Token from "./Token";
 import ReminderModal from "./modals/ReminderModal";
 import RoleModal from "./modals/RoleModal";
+import ActionModal from "./modals/ActionModal";
 
 export default {
   components: {
@@ -99,6 +109,7 @@ export default {
     Token,
     RoleModal,
     ReminderModal,
+    ActionModal,
   },
   computed: {
     ...mapGetters({ nightOrder: "players/nightOrder" }),
@@ -112,6 +123,7 @@ export default {
       swap: -1,
       move: -1,
       nominate: -1,
+      removeDialog: false,
       isBluffsOpen: true,
       isFabledOpen: true,
     };
@@ -153,29 +165,24 @@ export default {
     },
     removePlayer(playerIndex) {
       if (this.session.isSpectator || this.session.lockedVote) return;
-      if (
-        confirm(
-          `Do you really want to remove ${this.players[playerIndex].name}?`,
-        )
-      ) {
-        const { nomination } = this.session;
-        if (nomination) {
-          if (nomination.includes(playerIndex)) {
-            // abort vote if removed player is either nominator or nominee
-            this.$store.commit("session/nomination");
-          } else if (
-            nomination[0] > playerIndex ||
-            nomination[1] > playerIndex
-          ) {
-            // update nomination array if removed player has lower index
-            this.$store.commit("session/setNomination", [
-              nomination[0] > playerIndex ? nomination[0] - 1 : nomination[0],
-              nomination[1] > playerIndex ? nomination[1] - 1 : nomination[1],
-            ]);
-          }
+      this.selectedPlayer = playerIndex;
+      this.removeDialog = true;
+    },
+    confirmRemovePlayer() {
+      const playerIndex = this.selectedPlayer;
+      const { nomination } = this.session;
+      if (nomination) {
+        if (nomination.includes(playerIndex)) {
+          this.$store.commit("session/nomination");
+        } else if (nomination[0] > playerIndex || nomination[1] > playerIndex) {
+          this.$store.commit("session/setNomination", [
+            nomination[0] > playerIndex ? nomination[0] - 1 : nomination[0],
+            nomination[1] > playerIndex ? nomination[1] - 1 : nomination[1],
+          ]);
         }
-        this.$store.commit("players/remove", playerIndex);
       }
+      this.$store.commit("players/remove", playerIndex);
+      this.removeDialog = false;
     },
     swapPlayer(from, to) {
       if (this.session.isSpectator || this.session.lockedVote) return;

@@ -32,7 +32,6 @@ const state = () => ({
   isRolesDistributed: false,
   isSendBluffsWithRoles: false,
   showcaseToken: "",
-  sharedGrimViewers: [],
 });
 
 const getters = {};
@@ -62,7 +61,6 @@ const mutations = {
   setClaimedSeat: set("claimedSeat"),
   distributeRoles: set("isRolesDistributed"),
   setSendBluffsWithRoles: set("isSendBluffsWithRoles"),
-  setSharedGrimViewers: set("sharedGrimViewers"),
   setSessionId(state, sessionId) {
     state.sessionId = sessionId
       .toLocaleLowerCase()
@@ -116,16 +114,7 @@ const mutations = {
   lockVote(state, lock) {
     state.lockedVote = lock !== undefined ? lock : state.lockedVote + 1;
   },
-  toggleSharedGrimViewer(state, playerId) {
-    if (!state.sharedGrimViewers) {
-      state.sharedGrimViewers = [];
-    }
-    if (state.sharedGrimViewers.includes(playerId)) {
-      state.sharedGrimViewers = state.sharedGrimViewers.filter(id => id !== playerId);
-    } else {
-      state.sharedGrimViewers.push(playerId);
-    }
-  },
+  syncSharedGrimOnce() {},
 };
 
 export default {

@@ -29,11 +29,20 @@
         <span class="text">{{ reminder.name }}</span>
       </li>
     </ul>
+    <ActionModal
+      v-if="customReminderDialog"
+      title="Custom reminder"
+      label="Reminder text"
+      confirm-text="Add reminder"
+      @submit="addCustomReminder"
+      @cancel="customReminderDialog = false"
+    />
   </Modal>
 </template>
 
 <script>
 import Modal from "./Modal";
+import ActionModal from "./ActionModal";
 import { mapMutations, mapState } from "vuex";
 
 /**
@@ -51,7 +60,10 @@ const mapReminder =
   });
 
 export default {
-  components: { Modal },
+  components: { Modal, ActionModal },
+  data() {
+    return { customReminderDialog: false };
+  },
   props: ["playerIndex"],
   computed: {
     availableReminders() {
@@ -99,9 +111,8 @@ export default {
       const player = this.$store.state.players.players[this.playerIndex];
       let value;
       if (reminder.role === "custom") {
-        const name = prompt("Add a custom reminder note");
-        if (!name) return;
-        value = [...player.reminders, { role: "custom", name }];
+        this.customReminderDialog = true;
+        return;
       } else {
         value = [...player.reminders, reminder];
       }
@@ -110,6 +121,17 @@ export default {
         property: "reminders",
         value,
       });
+      this.$store.commit("toggleModal", "reminder");
+    },
+    addCustomReminder(name) {
+      if (!name.trim()) return;
+      const player = this.$store.state.players.players[this.playerIndex];
+      this.$store.commit("players/update", {
+        player,
+        property: "reminders",
+        value: [...player.reminders, { role: "custom", name: name.trim() }],
+      });
+      this.customReminderDialog = false;
       this.$store.commit("toggleModal", "reminder");
     },
     ...mapMutations(["toggleModal"]),

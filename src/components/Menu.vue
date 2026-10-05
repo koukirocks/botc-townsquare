@@ -1,5 +1,6 @@
 <template>
   <div id="controls">
+      <div class="toast" v-if="toastMessage" role="status">{{ toastMessage }}</div>
     <span
       class="nomlog-summary"
       v-show="session.voteHistory.length && session.sessionId"
@@ -247,13 +248,27 @@
         </template>
       </ul>
     </div>
+    <ActionModal
+      v-if="dialog"
+      :title="dialog.title"
+      :message="dialog.message"
+      :label="dialog.label"
+      :initial-value="dialog.value"
+      :placeholder="dialog.placeholder"
+      :confirm-text="dialog.confirmText"
+      :input="dialog.input"
+      @submit="submitDialog"
+      @cancel="closeDialog"
+    />
   </div>
 </template>
 
 <script>
 import { mapMutations, mapState } from "vuex";
+import ActionModal from "./modals/ActionModal";
 
 export default {
+    components: { ActionModal },
   computed: {
     ...mapState(["grimoire", "session", "edition"]),
     ...mapState("players", ["players"]),
@@ -261,114 +276,202 @@ export default {
   data() {
     return {
       tab: "grimoire",
+      dialog: null,
+      pendingSessionId: "",
+      toastMessage: "",
+      toastTimer: null,
     };
   },
+  mounted() {
+    this.$root.$on("intro-action", this.handleIntroAction);
+  },
+  beforeDestroy() {
+    this.$root.$off("intro-action", this.handleIntroAction);
+    clearTimeout(this.toastTimer);
+  },
   methods: {
-    setBackground() {
-      const background = prompt("Enter custom background URL");
-      if (background || background === "") {
-        this.$store.commit("setBackground", background);
-      }
+    handleIntroAction(action) {
+      this[action]();
     },
-    hostSession() {
-      if (this.session.sessionId) return;
-      const sessionId = prompt(
-        "Enter a channel number / name for your session",
-        Math.round(Math.random() * 10000),
-      );
-      if (sessionId) {
+    openDialog(dialog) {
+      this.dialog = dialog;
+    },
+    closeDialog() {
+      this.dialog = null;
+    },
+    showToast(message) {
+      clearTimeout(this.toastTimer);
+      this.toastMessage = message;
+      this.toastTimer = setTimeout(() => {
+        this.toastMessage = "";
+      }, 2500);
+    },
+    submitDialog(value) {
+      const action = this.dialog.action;
+      const input = value.trim();
+      this.closeDialog();
+      if (action === "setBackground") {
+        this.$store.commit("setBackground", input);
+      } else if (action === "hostSession" && input) {
         this.$store.commit("players/clearSeats");
         this.$store.commit("session/clearVoteHistory");
         this.$store.commit("session/setSpectator", false);
-        this.$store.commit("session/setSessionId", sessionId);
+        this.$store.commit("session/setSessionId", input);
         this.copySessionUrl();
+      } else if (action === "joinSessionId" && input) {
+        let sessionId = input;
+        if (sessionId.match(/^https?:\/\//i)) {
+          sessionId = sessionId.split("#").pop();
+        }
+        if (sessionId) {
+          this.pendingSessionId = sessionId;
+          this.openDialog({
+            action: "joinSessionName",
+            title: "Join live session",
+            label: "Your player name",
+            value: this.session.playerName,
+            confirmText: "Join session",
+          });
+        }
+      } else if (action === "joinSessionName" && input) {
+        this.$store.commit("session/setPlayerName", input);
+        this.$store.commit("session/clearVoteHistory");
+        this.$store.commit("session/setSpectator", true);
+        this.$store.commit("toggleGrimoire", false);
+        this.$store.commit("session/setSessionId", this.pendingSessionId);
+        this.pendingSessionId = "";
+      } else if (action === "addPlayer" && input) {
+        this.$store.commit("players/add", input);
+      } else if (action === "imageOptIn") {
+        this.toggleImageOptIn();
+      } else if (action === "distributeRoles") {
+        this.$store.commit("session/distributeRoles", true);
+        setTimeout(() => {
+          this.$store.commit("session/distributeRoles", false);
+        }, 2000);
+      } else if (action === "leaveSession") {
+        this.$store.commit("players/clearSeats");
+        this.$store.commit("session/setSpectator", false);
+        this.$store.commit("session/setSessionId", "");
+      } else if (action === "randomizeSeatings") {
+        this.$store.dispatch("players/randomize");
+      } else if (action === "clearPlayers") {
+        if (this.session.nomination) this.$store.commit("session/nomination");
+        this.$store.commit("players/clear");
+      } else if (action === "clearRoles") {
+        this.$store.dispatch("players/clearRoles");
       }
+    },
+    setBackground() {
+      this.openDialog({
+        action: "setBackground",
+        title: "Background image",
+        message: "Enter an image or video URL. Leave it empty to restore the default.",
+        label: "URL",
+        value: this.grimoire.background,
+        confirmText: "Save background",
+      });
+    },
+    hostSession() {
+      if (this.session.sessionId) return;
+      this.openDialog({
+        action: "hostSession",
+        title: "Host a live session",
+        message: "Choose a short channel name or number to share with players.",
+        label: "Channel name",
+        value: Math.round(Math.random() * 10000).toString(),
+        confirmText: "Host session",
+      });
     },
     copySessionUrl() {
       const url = window.location.href.split("#")[0];
       const link = url + "#" + this.session.sessionId;
-      navigator.clipboard.writeText(link);
+      if (!navigator.clipboard) {
+        this.showToast("Clipboard access is unavailable");
+        return;
+      }
+      navigator.clipboard
+        .writeText(link)
+        .then(() => this.showToast("Player link copied"))
+        .catch(() => this.showToast("Could not copy the player link"));
     },
     distributeRoles() {
       if (this.session.isSpectator) return;
-      const popup =
-        "Do you want to distribute assigned characters to all SEATED players?";
-      if (confirm(popup)) {
-        this.$store.commit("session/distributeRoles", true);
-        setTimeout(
-          (() => {
-            this.$store.commit("session/distributeRoles", false);
-          }).bind(this),
-          2000,
-        );
-      }
+      this.openDialog({
+        action: "distributeRoles",
+        title: "Send characters",
+        message: "Assigned characters will be sent to all seated players.",
+        confirmText: "Send characters",
+        input: false,
+      });
     },
     imageOptIn() {
-      const popup =
-        "Are you sure you want to allow custom images? A malicious script file author might track your IP address this way.";
-      if (this.grimoire.isImageOptIn || confirm(popup)) {
-        this.toggleImageOptIn();
-      }
+      if (this.grimoire.isImageOptIn) return this.toggleImageOptIn();
+      this.openDialog({
+        action: "imageOptIn",
+        title: "Allow custom images?",
+        message: "Custom images can come from untrusted sources and may track your IP address.",
+        confirmText: "Allow images",
+        input: false,
+      });
     },
     joinSession() {
       if (this.session.sessionId) return this.leaveSession();
-      let sessionId = prompt(
-        "Enter the channel number / name of the session you want to join",
-      );
-      if (!sessionId) return;
-      if (sessionId.match(/^https?:\/\//i)) {
-        sessionId = sessionId.split("#").pop();
-      }
-      if (!sessionId) return;
-
-      const currentName = this.session.playerName || "";
-      const enteredName = prompt("Enter your player name", currentName);
-      if (enteredName === null) return;
-      const preferredName = enteredName.trim() || currentName;
-      if (!preferredName) return;
-      if (sessionId) {
-        this.$store.commit("session/setPlayerName", preferredName);
-        this.$store.commit("session/clearVoteHistory");
-        this.$store.commit("session/setSpectator", true);
-        this.$store.commit("toggleGrimoire", false);
-        this.$store.commit("session/setSessionId", sessionId);
-      }
+      this.openDialog({
+        action: "joinSessionId",
+        title: "Join a live session",
+        message: "Paste a channel name or a full player link.",
+        label: "Channel or link",
+        confirmText: "Continue",
+      });
     },
     leaveSession() {
-      if (confirm("Are you sure you want to leave the active live game?")) {
-        this.$store.commit("players/clearSeats");
-        this.$store.commit("session/setSpectator", false);
-        this.$store.commit("session/setSessionId", "");
-      }
+      this.openDialog({
+        action: "leaveSession",
+        title: "Leave live session?",
+        message: "You will be disconnected from the current live game.",
+        confirmText: "Leave session",
+        input: false,
+      });
     },
     addPlayer() {
       if (this.session.isSpectator) return;
       if (this.players.length >= 20) return;
-      const name = prompt("Player name");
-      if (name) {
-        this.$store.commit("players/add", name);
-      }
+      this.openDialog({
+        action: "addPlayer",
+        title: "Add player",
+        label: "Player name",
+        confirmText: "Add player",
+      });
     },
     randomizeSeatings() {
       if (this.session.isSpectator) return;
-      if (confirm("Are you sure you want to randomize seatings?")) {
-        this.$store.dispatch("players/randomize");
-      }
+      this.openDialog({
+        action: "randomizeSeatings",
+        title: "Randomize seatings?",
+        message: "The current seating order will be changed.",
+        confirmText: "Randomize",
+        input: false,
+      });
     },
     clearPlayers() {
       if (this.session.isSpectator) return;
-      if (confirm("Are you sure you want to remove all players?")) {
-        // abort vote if in progress
-        if (this.session.nomination) {
-          this.$store.commit("session/nomination");
-        }
-        this.$store.commit("players/clear");
-      }
+      this.openDialog({
+        action: "clearPlayers",
+        title: "Remove all players?",
+        message: "This will clear the entire player list.",
+        confirmText: "Remove all",
+        input: false,
+      });
     },
     clearRoles() {
-      if (confirm("Are you sure you want to remove all player roles?")) {
-        this.$store.dispatch("players/clearRoles");
-      }
+      this.openDialog({
+        action: "clearRoles",
+        title: "Remove all roles?",
+        message: "All assigned characters and reminders will be cleared.",
+        confirmText: "Remove roles",
+        input: false,
+      });
     },
     clearShowcasedToken() {
       this.$store.commit("session/setShowcaseToken", "");
@@ -414,6 +517,20 @@ export default {
   text-align: right;
   padding-right: 50px;
   z-index: 75;
+
+  .toast {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 14px;
+    border: 2px solid black;
+    border-radius: 6px;
+    background: rgba(0, 80, 30, 0.9);
+    box-shadow: 0 2px 8px black;
+    white-space: nowrap;
+    z-index: 200;
+  }
 
   svg {
     filter: drop-shadow(0 0 5px rgba(0, 0, 0, 1));

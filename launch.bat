@@ -28,7 +28,7 @@ start "Game Rules Server" cmd /k "cd gamerule & node server.js"
 timeout /t 10 /nobreak >nul
 
 :: 3. Start the main Cloudflare Tunnel (main site on 8080)
-echo [4/4] Connecting to your Cloudflare URL (http2 mode)...
+echo [4/4] Connecting to your Cloudflare URL...
 echo.
 echo Main site: koukirocks.qzz.io (port 8080)
 echo Game Rules: gamerule.koukirocks.qzz.io (port 8081)
@@ -43,6 +43,6 @@ echo ===================================================
 :: -> IF YOU CREATED YOUR TUNNEL VIA CLI (e.g., named "botc-game"):
 :: Make sure you have previously run: 'npx cloudflared tunnel route dns botc-game yourdomain.com'
 :: AND: 'npx cloudflared tunnel route dns botc-game gamerule.koukirocks.qzz.io'
-npx cloudflared tunnel --protocol http2 run botc-game
+npx cloudflared tunnel run botc-game
 
 pause

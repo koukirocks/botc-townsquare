@@ -198,16 +198,27 @@
       <span class="icon"></span>
     </div>
     <div class="reminderHoverTarget"></div>
+    <ActionModal
+      v-if="dialog"
+      :title="dialog.title"
+      :label="dialog.label"
+      :initial-value="dialog.value"
+      :confirm-text="dialog.confirmText"
+      @submit="submitDialog"
+      @cancel="dialog = null"
+    />
   </li>
 </template>
 
 <script>
 import Token from "./Token";
+import ActionModal from "./modals/ActionModal";
 import { mapGetters, mapState } from "vuex";
 
 export default {
   components: {
     Token,
+    ActionModal,
   },
   props: {
     player: {
@@ -250,6 +261,7 @@ export default {
       isSwap: false,
       viewportWidth: window.innerWidth,
       viewportHeight: window.innerHeight,
+      dialog: null,
     };
   },
   mounted() {
@@ -266,11 +278,16 @@ export default {
     changePronouns() {
       if (this.session.isSpectator && this.player.id !== this.session.playerId)
         return;
-      const pronouns = prompt("Player pronouns", this.player.pronouns);
-      //Only update pronouns if not null (prompt was not cancelled)
-      if (pronouns !== null) {
-        this.updatePlayer("pronouns", pronouns, true);
-      }
+      this.dialog = {
+        title: "Player pronouns",
+        label: "Pronouns",
+        value: this.player.pronouns,
+        confirmText: "Save pronouns",
+      };
+    },
+    submitDialog(value) {
+      this.updatePlayer("pronouns", value.trim(), true);
+      this.dialog = null;
     },
     toggleStatus() {
       if (this.grimoire.isPublic) {

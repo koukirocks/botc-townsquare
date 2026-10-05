@@ -4,12 +4,18 @@
     <div>
       Welcome to the (unofficial)
       <b>Virtual Town Square and Grimoire</b> for Blood on the Clocktower!
-      Please add more players through the
-      <span class="button" @click="toggleMenu">
-        <font-awesome-icon icon="cog" /> Menu
-      </span>
-      on the top right or by pressing <b>[A]</b>. You can also join a game
-      session by pressing <b>[J]</b>.<br />
+      <div class="quick-actions">
+        <span class="button" @click="addPlayer">
+          <font-awesome-icon icon="user" /> Add player
+        </span>
+        <span class="button townsfolk" @click="hostSession">
+          <font-awesome-icon icon="broadcast-tower" /> Host game
+        </span>
+        <span class="button demon" @click="joinSession">
+          <font-awesome-icon icon="link" /> Join game
+        </span>
+      </div>
+      <small>More tools are available from the menu.</small>
       <div class="footer">
         This project is free and open source and can be found on
         <a href="https://github.com/bra1n/townsquare" target="_blank">GitHub</a
@@ -30,15 +36,26 @@
 </template>
 
 <script>
-import { mapMutations } from "vuex";
-
 export default {
   data() {
     return {
       language: window.navigator.userLanguage || window.navigator.language,
     };
   },
-  methods: mapMutations(["toggleMenu"]),
+  methods: {
+    emitAction(action) {
+      this.$root.$emit("intro-action", action);
+    },
+    addPlayer() {
+      this.emitAction("addPlayer");
+    },
+    hostSession() {
+      this.emitAction("hostSession");
+    },
+    joinSession() {
+      this.emitAction("joinSession");
+    },
+  },
 };
 </script>
 
@@ -94,6 +111,32 @@ export default {
   .footer {
     font-size: 60%;
     opacity: 0.75;
+  }
+
+  small {
+    display: block;
+    margin-top: 8px;
+    opacity: 0.8;
+  }
+
+  .quick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin: 12px 0 4px;
+
+    .button {
+      margin: 0;
+      padding: 0 8px;
+    }
+  }
+}
+
+@media screen and (max-width: 575.98px) {
+  .intro {
+    width: calc(100% - 24px);
+    font-size: 100%;
   }
 }
 </style>
