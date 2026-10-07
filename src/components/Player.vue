@@ -204,7 +204,7 @@
           class="icon"
           :style="{
             backgroundImage: `url(${
-              reminder.image && grimoire.isImageOptIn
+              reminder.image
                 ? reminder.image
                 : require(
                     '../assets/icons/' +

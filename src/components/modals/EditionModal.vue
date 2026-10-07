@@ -8,9 +8,7 @@
           class="edition"
           :class="['edition-' + edition.id]"
           :style="{
-            backgroundImage: `url(${require(
-              '../../assets/editions/' + edition.id + '.png',
-            )})`,
+            backgroundImage: `url(${getEditionLogo(edition)})`,
           }"
           :key="edition.id"
           @click="setEdition(edition)"
@@ -21,7 +19,7 @@
           class="edition edition-custom"
           @click="isCustom = true"
           :style="{
-            backgroundImage: `url(${require('../../assets/editions/custom.png')})`,
+            backgroundImage: `url(${getEditionLogo('custom')})`,
           }"
         >
           Custom Script / Characters
@@ -98,8 +96,10 @@
 <script>
 import editionJSON from "../../editions";
 import customScripts from "../../customs.json";
+import { getOfficialIcon } from "../../utils/roleIcons";
 import { mapMutations, mapState } from "vuex";
 import Modal from "./Modal";
+import { getEditionLogo } from "../../utils/editionIcons";
 import ActionModal from "./ActionModal";
 
 export default {
@@ -117,6 +117,7 @@ export default {
   },
   computed: mapState(["modals"]),
   methods: {
+    getEditionLogo,
     openUpload() {
       this.$refs.upload.click();
     },
@@ -173,9 +174,20 @@ export default {
         alert("Custom script must be a non-empty JSON array.");
         return;
       }
-      const roles = input.map((role) =>
-        typeof role === "string" ? { id: role } : role,
-      );
+      const roles = input.map((role) => {
+        const normalizedRole =
+          typeof role === "string" ? { id: role } : { ...role };
+        if (normalizedRole.id && normalizedRole.id !== "_meta") {
+          const definition = this.$store.getters.rolesJSONbyId.get(
+            normalizedRole.id,
+          );
+          const icon = getOfficialIcon(
+            Object.assign({}, definition, normalizedRole),
+          );
+          if (icon && !normalizedRole.image) normalizedRole.image = icon;
+        }
+        return normalizedRole;
+      });
       const metaIndex = roles.findIndex(
         (role) => role && typeof role === "object" && role.id === "_meta",
       );

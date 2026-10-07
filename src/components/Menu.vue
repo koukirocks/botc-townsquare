@@ -84,16 +84,6 @@
             Background image
             <em><font-awesome-icon icon="image" /></em>
           </li>
-          <li v-if="!edition.isOfficial" @click="imageOptIn">
-            <small>Show Custom Images</small>
-            <em
-              ><font-awesome-icon
-                :icon="[
-                  'fas',
-                  grimoire.isImageOptIn ? 'check-square' : 'square',
-                ]"
-            /></em>
-          </li>
           <li @click="toggleStatic">
             Disable Animations
             <em
@@ -169,7 +159,7 @@
               v-if="!session.isSpectator"
               @click="toggleSessionOption('isTwoVotesEnabled')"
             >
-              Enable two votes
+              Enable two votes for all players
               <em>
                 <font-awesome-icon
                   :icon="[
@@ -384,8 +374,6 @@ export default {
         this.pendingSessionId = "";
       } else if (action === "addPlayer" && input) {
         this.$store.commit("players/add", input);
-      } else if (action === "imageOptIn") {
-        this.toggleImageOptIn();
       } else if (action === "distributeRoles") {
         this.$store.commit("session/distributeRoles", true);
         setTimeout(() => {
@@ -444,16 +432,6 @@ export default {
         title: "Send characters",
         message: "Assigned characters will be sent to all seated players.",
         confirmText: "Send characters",
-        input: false,
-      });
-    },
-    imageOptIn() {
-      if (this.grimoire.isImageOptIn) return this.toggleImageOptIn();
-      this.openDialog({
-        action: "imageOptIn",
-        title: "Allow custom images?",
-        message: "Custom images can come from untrusted sources and may track your IP address.",
-        confirmText: "Allow images",
         input: false,
       });
     },
@@ -520,7 +498,20 @@ export default {
     },
     toggleSessionOption(option) {
       if (this.session.isSpectator) return;
-      this.$store.commit(`session/set${option[0].toUpperCase()}${option.slice(1)}`, !this.session[option]);
+      const value = !this.session[option];
+      this.$store.commit(
+        `session/set${option[0].toUpperCase()}${option.slice(1)}`,
+        value,
+      );
+      if (option === "isTwoVotesEnabled") {
+        this.players.forEach((player) => {
+          this.$store.commit("players/update", {
+            player,
+            property: "hasTwoVotes",
+            value,
+          });
+        });
+      }
     },
     toggleNight() {
       this.$store.commit("toggleNight");
@@ -531,7 +522,6 @@ export default {
     ...mapMutations([
       "toggleGrimoire",
       "toggleMenu",
-      "toggleImageOptIn",
       "toggleMuted",
       "toggleNightOrder",
       "toggleStatic",

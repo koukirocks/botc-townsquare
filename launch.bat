@@ -8,13 +8,13 @@ echo ===================================================
 
 :: 1. Build frontend assets
 echo [1/4] Building frontend assets...
-::call npm run build
-::if errorlevel 1 (
-::	echo.
-::	echo Build failed. Server was not started.
-::	pause
-::	exit /b 1
-::)
+call npm run build
+if errorlevel 1 (
+	echo.
+	echo Build failed. Server was not started.
+	pause
+	exit /b 1
+)
 
 :: 2. Start the Node.js Game Server in a new hidden/separate window
 echo [2/4] Booting up local server (Port 8080)...

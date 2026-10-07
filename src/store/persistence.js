@@ -14,9 +14,6 @@ module.exports = (store) => {
   if (localStorage.getItem("static")) {
     store.commit("toggleStatic", true);
   }
-  if (localStorage.getItem("imageOptIn")) {
-    store.commit("toggleImageOptIn", true);
-  }
   if (localStorage.getItem("zoom")) {
     store.commit("setZoom", parseFloat(localStorage.getItem("zoom")));
   }
@@ -106,13 +103,6 @@ module.exports = (store) => {
           localStorage.setItem("static", 1);
         } else {
           localStorage.removeItem("static");
-        }
-        break;
-      case "toggleImageOptIn":
-        if (state.grimoire.isImageOptIn) {
-          localStorage.setItem("imageOptIn", 1);
-        } else {
-          localStorage.removeItem("imageOptIn");
         }
         break;
       case "setZoom":

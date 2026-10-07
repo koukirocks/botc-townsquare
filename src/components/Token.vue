@@ -4,11 +4,7 @@
       class="icon"
       v-if="role.id"
       :style="{
-        backgroundImage: `url(${
-          role.image && grimoire.isImageOptIn
-            ? role.image
-            : require('../assets/icons/' + (role.imageAlt || role.id) + '.png')
-        })`,
+        backgroundImage: `url(${iconUrl})`,
       }"
     ></span>
     <span
@@ -48,7 +44,7 @@
 
 <script>
 import { mapState } from "vuex";
-
+import { getRoleIcon } from "../utils/roleIcons";
 export default {
   name: "Token",
   props: {
@@ -58,6 +54,9 @@ export default {
     },
   },
   computed: {
+    iconUrl() {
+      return getRoleIcon(this.role);
+    },
     reminderLeaves: function () {
       return (
         (this.role.reminders || []).length +

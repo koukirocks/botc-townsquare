@@ -41,15 +41,7 @@
             class="icon"
             v-if="role.id"
             :style="{
-              backgroundImage: `url(${
-                role.image && grimoire.isImageOptIn
-                  ? role.image
-                  : require(
-                      '../../assets/icons/' +
-                        (role.imageAlt || role.id) +
-                        '.png',
-                    )
-              })`,
+              backgroundImage: `url(${getRoleIcon(role)})`,
             }"
           ></span>
           <span class="reminder" v-if="role.firstNightReminder">
@@ -68,15 +60,7 @@
             class="icon"
             v-if="role.id"
             :style="{
-              backgroundImage: `url(${
-                role.image && grimoire.isImageOptIn
-                  ? role.image
-                  : require(
-                      '../../assets/icons/' +
-                        (role.imageAlt || role.id) +
-                        '.png',
-                    )
-              })`,
+              backgroundImage: `url(${getRoleIcon(role)})`,
             }"
           ></span>
           <span class="name">
@@ -104,6 +88,7 @@
 
 <script>
 import Modal from "./Modal";
+import { getRoleIcon } from "../../utils/roleIcons";
 import { mapMutations, mapState } from "vuex";
 
 export default {
@@ -113,13 +98,46 @@ export default {
   computed: {
     rolesFirstNight: function () {
       const rolesFirstNight = [];
+      const dusk = this.getNightOrder(this.edition.firstNight, "dusk", 1);
+      const dawn = this.getNightOrder(this.edition.firstNight, "dawn", 0);
+      if (dusk) {
+        rolesFirstNight.push({
+          id: "dusk",
+          name: "Dusk",
+          firstNight: dusk,
+          team: "demon",
+          players: [],
+          firstNightReminder: "Start the Night Phase.",
+        });
+      }
+      if (dawn) {
+        rolesFirstNight.push({
+          id: "dawn",
+          name: "Dawn",
+          firstNight: dawn,
+          team: "townsfolk",
+          players: [],
+          firstNightReminder: "Wait a few seconds. End the Night Phase.",
+        });
+      }
       // add minion / demon infos to night order sheet
       if (this.players.length > 6) {
+        const minionInfo = this.getNightOrder(
+          this.edition.firstNight,
+          "minioninfo",
+          5,
+        );
+        const demonInfo = this.getNightOrder(
+          this.edition.firstNight,
+          "demoninfo",
+          8,
+        );
         rolesFirstNight.push(
+          ...[
           {
             id: "evil",
             name: "Minion info",
-            firstNight: 5,
+            firstNight: minionInfo,
             team: "minion",
             players: this.players.filter((p) => p.role.team === "minion"),
             firstNightReminder:
@@ -129,7 +147,7 @@ export default {
           {
             id: "evil",
             name: "Demon info & bluffs",
-            firstNight: 8,
+            firstNight: demonInfo,
             team: "demon",
             players: this.players.filter((p) => p.role.team === "demon"),
             firstNightReminder:
@@ -137,15 +155,37 @@ export default {
               "• Show the “These characters are not in play” card. Show 3 character tokens of good " +
               "characters not in play.",
           },
+          ].filter(({ firstNight }) => firstNight),
         );
       }
       this.roles.forEach((role) => {
+        const firstNight = this.getNightOrder(
+          this.edition.firstNight,
+          role.id,
+          role.firstNight,
+        );
         const players = this.players.filter((p) => p.role.id === role.id);
-        if (role.firstNight && (role.team !== "traveler" || players.length)) {
-          rolesFirstNight.push(Object.assign({ players }, role));
+        if (
+          firstNight &&
+          (role.team !== "traveler" &&
+            role.team !== "traveller" ||
+            players.length)
+        ) {
+          rolesFirstNight.push(
+            Object.assign({ players }, role, { firstNight }),
+          );
         }
       });
       this.fabled
+        .map((fabled) =>
+          Object.assign({}, fabled, {
+            firstNight: this.getNightOrder(
+              this.edition.firstNight,
+              fabled.id,
+              fabled.firstNight,
+            ),
+          }),
+        )
         .filter(({ firstNight }) => firstNight)
         .forEach((fabled) => {
           rolesFirstNight.push(Object.assign({ players: [] }, fabled));
@@ -155,13 +195,56 @@ export default {
     },
     rolesOtherNight: function () {
       const rolesOtherNight = [];
+      const dusk = this.getNightOrder(this.edition.otherNight, "dusk", 1);
+      const dawn = this.getNightOrder(this.edition.otherNight, "dawn", 0);
+      if (dusk) {
+        rolesOtherNight.push({
+          id: "dusk",
+          name: "Dusk",
+          otherNight: dusk,
+          team: "demon",
+          players: [],
+          otherNightReminder: "Start the Night Phase.",
+        });
+      }
+      if (dawn) {
+        rolesOtherNight.push({
+          id: "dawn",
+          name: "Dawn",
+          otherNight: dawn,
+          team: "townsfolk",
+          players: [],
+          otherNightReminder: "Wait a few seconds. End the Night Phase.",
+        });
+      }
       this.roles.forEach((role) => {
+        const otherNight = this.getNightOrder(
+          this.edition.otherNight,
+          role.id,
+          role.otherNight,
+        );
         const players = this.players.filter((p) => p.role.id === role.id);
-        if (role.otherNight && (role.team !== "traveler" || players.length)) {
-          rolesOtherNight.push(Object.assign({ players }, role));
+        if (
+          otherNight &&
+          (role.team !== "traveler" &&
+            role.team !== "traveller" ||
+            players.length)
+        ) {
+          rolesOtherNight.push(
+            Object.assign({ players }, role, { otherNight }),
+          );
         }
       });
       this.fabled
+        .map((fabled) =>
+          Object.assign({}, fabled, {
+            otherNight: this.getNightOrder(
+              this.edition.otherNight,
+              fabled.id,
+              fabled.otherNight,
+            ),
+          }),
+        )
         .filter(({ otherNight }) => otherNight)
         .forEach((fabled) => {
           rolesOtherNight.push(Object.assign({ players: [] }, fabled));
@@ -173,6 +256,14 @@ export default {
     ...mapState("players", ["players", "fabled"]),
   },
   methods: {
+    getNightOrder(order, roleId, fallback) {
+      if (!Array.isArray(order)) {
+        return fallback;
+      }
+      const index = order.indexOf(roleId);
+      return index === -1 ? 0 : index + 1;
+    },
+    getRoleIcon,
     ...mapMutations(["toggleModal"]),
   },
 };

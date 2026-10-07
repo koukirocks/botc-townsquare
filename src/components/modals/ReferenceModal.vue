@@ -29,15 +29,7 @@
             class="icon"
             v-if="role.id"
             :style="{
-              backgroundImage: `url(${
-                role.image && grimoire.isImageOptIn
-                  ? role.image
-                  : require(
-                      '../../assets/icons/' +
-                        (role.imageAlt || role.id) +
-                        '.png',
-                    )
-              })`,
+              backgroundImage: `url(${getRoleIcon(role)})`,
             }"
           ></span>
           <div class="role">
@@ -62,17 +54,13 @@
           <span
             class="icon"
             :style="{
-              backgroundImage: `url(${require(
-                '../../assets/icons/' + jinx.first.id + '.png',
-              )})`,
+              backgroundImage: `url(${getRoleIcon(jinx.first)})`,
             }"
           ></span>
           <span
             class="icon"
             :style="{
-              backgroundImage: `url(${require(
-                '../../assets/icons/' + jinx.second.id + '.png',
-              )})`,
+              backgroundImage: `url(${getRoleIcon(jinx.second)})`,
             }"
           ></span>
           <div class="role">
@@ -92,6 +80,7 @@
 <script>
 import Modal from "./Modal";
 import { mapMutations, mapState } from "vuex";
+import { getRoleIcon } from "../../utils/roleIcons";
 
 export default {
   components: {
@@ -104,18 +93,21 @@ export default {
      */
     jinxed: function () {
       const jinxed = [];
+      const pushAllJinxes = (role, roleJinxes) => {
+        roleJinxes.forEach((reason, second) => {
+          if (this.roles.get(second)) {
+            jinxed.push({
+              first: role,
+              second: this.roles.get(second),
+              reason,
+            });
+          }
+        });
+      };
       this.roles.forEach((role) => {
-        if (this.jinxes.get(role.id)) {
-          this.jinxes.get(role.id).forEach((reason, second) => {
-            if (this.roles.get(second)) {
-              jinxed.push({
-                first: role,
-                second: this.roles.get(second),
-                reason,
-              });
-            }
-          });
-        }
+        if (this.jinxes.get(role.id))
+          pushAllJinxes(role, this.jinxes.get(role.id));
+        if (role.jinxes) pushAllJinxes(role, role.jinxes);
       });
       return jinxed;
     },
@@ -146,6 +138,7 @@ export default {
     ...mapState("players", ["players"]),
   },
   methods: {
+    getRoleIcon,
     ...mapMutations(["toggleModal"]),
   },
 };

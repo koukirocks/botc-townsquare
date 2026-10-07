@@ -7,14 +7,27 @@ import session from "./modules/session";
 import editionJSON from "../editions.json";
 import rolesJSON from "../roles.json";
 import fabledJSON from "../fabled.json";
-import jinxesJSON from "../hatred.json";
+import nightJSON from "../nightsheet.json";
 
 Vue.use(Vuex);
 
 // helper functions
+const clean = (id) => id.toLocaleLowerCase().replace(/[^a-z0-9]/g, "");
+
+const getNightOrder = (order, id) => {
+  const index = order.indexOf(clean(id));
+  return index === -1 ? 0 : index + 1;
+};
+
+const rolesWithNightOrder = rolesJSON.map((role) => ({
+  ...role,
+  firstNight: getNightOrder(nightJSON.firstNight, role.id),
+  otherNight: getNightOrder(nightJSON.otherNight, role.id),
+}));
+
 const getRolesByEdition = (edition = editionJSON[0]) => {
   return new Map(
-    rolesJSON
+    rolesWithNightOrder
       .filter((r) => r.edition === edition.id || edition.roles.includes(r.id))
       .sort((a, b) => b.team.localeCompare(a.team))
       .map((role) => [role.id, role]),
@@ -23,7 +36,7 @@ const getRolesByEdition = (edition = editionJSON[0]) => {
 
 const getTravelersNotInEdition = (edition = editionJSON[0]) => {
   return new Map(
-    rolesJSON
+    rolesWithNightOrder
       .filter(
         (r) =>
           r.team === "traveler" &&
@@ -50,32 +63,17 @@ const toggle =
     }
   };
 
-const clean = (id) => id.toLocaleLowerCase().replace(/[^a-z0-9]/g, "");
-
 // global data maps
 const editionJSONbyId = new Map(
   editionJSON.map((edition) => [edition.id, edition]),
 );
-const rolesJSONbyId = new Map(rolesJSON.map((role) => [role.id, role]));
+const rolesJSONbyId = new Map(
+  rolesWithNightOrder.map((role) => [role.id, role]),
+);
 const fabled = new Map(fabledJSON.map((role) => [role.id, role]));
 
-// jinxes
-let jinxes = {};
-try {
-  // Note: can't fetch live list due to lack of CORS headers
-  // fetch("https://bloodontheclocktower.com/script/data/hatred.json")
-  //   .then(res => res.json())
-  //   .then(jinxesJSON => {
-  jinxes = new Map(
-    jinxesJSON.map(({ id, hatred }) => [
-      clean(id),
-      new Map(hatred.map(({ id, reason }) => [clean(id), reason])),
-    ]),
-  );
-  // });
-} catch (e) {
-  console.error("couldn't load jinxes", e);
-}
+const officialJinxesUrl =
+  "https://release.botc.app/resources/data/jinxes.json";
 
 // base definition for custom roles
 const customRole = {
@@ -95,7 +93,7 @@ const customRole = {
   isCustom: true,
 };
 
-export default new Vuex.Store({
+const store = new Vuex.Store({
   modules: {
     players,
     session,
@@ -108,7 +106,6 @@ export default new Vuex.Store({
       isMenuOpen: false,
       isStatic: false,
       isMuted: false,
-      isImageOptIn: false,
       zoom: 0,
       background: "",
     },
@@ -129,7 +126,7 @@ export default new Vuex.Store({
     roles: getRolesByEdition(),
     otherTravelers: getTravelersNotInEdition(),
     fabled,
-    jinxes,
+    jinxes: new Map(),
   },
   getters: {
     /**
@@ -169,6 +166,14 @@ export default new Vuex.Store({
   },
   mutations: {
     setZoom: set("zoom"),
+    setJinxes(state, entries) {
+      state.jinxes = new Map(
+        entries.map(({ id, jinx }) => [
+          clean(id),
+          new Map(jinx.map(({ id: second, reason }) => [clean(second), reason])),
+        ]),
+      );
+    },
     setBackground: set("background"),
     toggleMuted: toggle("isMuted"),
     toggleMenu: toggle("isMenuOpen"),
@@ -176,7 +181,6 @@ export default new Vuex.Store({
     toggleStatic: toggle("isStatic"),
     toggleNight: toggle("isNight"),
     toggleGrimoire: toggle("isPublic"),
-    toggleImageOptIn: toggle("isImageOptIn"),
     toggleModal({ modals }, name) {
       if (name) {
         modals[name] = !modals[name];
@@ -216,23 +220,30 @@ export default new Vuex.Store({
         // map existing roles to base definition or pre-populate custom roles to ensure all properties
         .map(
           (role) =>
-            rolesJSONbyId.get(role.id) ||
-            state.roles.get(role.id) ||
-            Object.assign({}, customRole, role),
+          rolesJSONbyId.get(role.id)
+            ? Object.assign({}, rolesJSONbyId.get(role.id), role)
+            : state.roles.get(role.id) ||
+              Object.assign({}, customRole, role),
         )
         // default empty icons and placeholders, clean up firstNight / otherNight
         .map((role) => {
-          if (rolesJSONbyId.get(role.id)) return role;
-          role.imageAlt = // map team to generic icon
-            {
-              townsfolk: "good",
-              outsider: "outsider",
-              minion: "minion",
-              demon: "evil",
-              fabled: "fabled",
-            }[role.team] || "custom";
-          role.firstNight = Math.abs(role.firstNight);
-          role.otherNight = Math.abs(role.otherNight);
+          if (!rolesJSONbyId.get(role.id)) {
+            role.imageAlt = // map team to generic icon
+              {
+                townsfolk: "good",
+                outsider: "outsider",
+                minion: "minion",
+                demon: "evil",
+                fabled: "fabled",
+              }[role.team] || "custom";
+            role.firstNight = Math.abs(role.firstNight);
+            role.otherNight = Math.abs(role.otherNight);
+          }
+          if (Array.isArray(role.jinxes)) {
+            role.jinxes = new Map(
+              role.jinxes.map(({ id, reason }) => [clean(id), reason]),
+            );
+          }
           return role;
         })
         // filter out roles that don't match an existing role and also don't have name/ability/team
@@ -254,7 +265,7 @@ export default new Vuex.Store({
       ]);
       // update extraTravelers map to only show travelers not in this script
       state.otherTravelers = new Map(
-        rolesJSON
+        rolesWithNightOrder
           .filter(
             (r) => r.team === "traveler" && !roles.some((i) => i.id === r.id),
           )
@@ -274,3 +285,22 @@ export default new Vuex.Store({
   },
   plugins: [persistence, socket],
 });
+
+fetch(officialJinxesUrl)
+  .then((response) => {
+    if (!response.ok) {
+      throw new Error(`Request failed (${response.status})`);
+    }
+    return response.json();
+  })
+  .then((entries) => {
+    if (!Array.isArray(entries)) {
+      throw new Error("Official jinx data must be an array");
+    }
+    store.commit("setJinxes", entries);
+  })
+  .catch((error) => {
+    console.error("Couldn't load official jinx data", error);
+  });
+
+export default store;
