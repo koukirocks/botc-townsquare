@@ -9,16 +9,20 @@ export const hasLocalIcon = (id) => availableIcons.has(id);
 
 export const getOfficialIcon = (role) => {
   const id = typeof role === "string" ? role : role && role.id;
-  const edition = typeof role === "object" && role ? role.edition : "";
   const team = typeof role === "object" && role ? role.team : "";
+  const edition =
+    typeof role === "object" && role
+      ? role.edition || (team === "fabled" ? "fabled" : "")
+      : "";
   if (!id || !edition) return "";
+  const resourceEdition = id === "stormcatcher" ? "loric" : edition;
   const alignment =
     team === "townsfolk" || team === "outsider"
       ? "_g"
       : team === "minion" || team === "demon"
         ? "_e"
         : "";
-  return `${onlineIconBase}/${edition}/${id}${alignment}.webp`;
+  return `${onlineIconBase}/${resourceEdition}/${id}${alignment}.webp`;
 };
 
 export const getLocalIcon = (id) => iconAssets(`./${id}.png`);
@@ -38,6 +42,7 @@ export const getRoleIcon = (role) => {
         traveler: "custom",
         traveller: "custom",
         fabled: "fabled",
+        loric: "custom",
       }[role.team] || "custom";
   return getLocalIcon(fallback);
 };

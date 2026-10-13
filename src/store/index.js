@@ -70,7 +70,12 @@ const editionJSONbyId = new Map(
 const rolesJSONbyId = new Map(
   rolesWithNightOrder.map((role) => [role.id, role]),
 );
-const fabled = new Map(fabledJSON.map((role) => [role.id, role]));
+const fabled = new Map([
+  ...fabledJSON.map((role) => [role.id, role]),
+  ...rolesWithNightOrder
+    .filter((role) => role.team === "loric")
+    .map((role) => [role.id, role]),
+]);
 
 const officialJinxesUrl =
   "https://release.botc.app/resources/data/jinxes.json";
@@ -135,7 +140,7 @@ const store = new Vuex.Store({
      * @param roles
      * @returns {[]}
      */
-    customRolesStripped: ({ roles }) => {
+    customRolesStripped: ({ roles, fabled }) => {
       const customRoles = [];
       const customKeys = Object.keys(customRole);
       const strippedProps = [
@@ -143,7 +148,9 @@ const store = new Vuex.Store({
         "otherNightReminder",
         "isCustom",
       ];
-      roles.forEach((role) => {
+      [...roles.values(), ...fabled.values()]
+        .filter((role) => role.isCustom || !["fabled", "loric"].includes(role.team))
+        .forEach((role) => {
         if (!role.isCustom) {
           customRoles.push({ id: role.id });
         } else {
@@ -159,7 +166,7 @@ const store = new Vuex.Store({
           }
           customRoles.push(strippedRole);
         }
-      });
+        });
       return customRoles;
     },
     rolesJSONbyId: () => rolesJSONbyId,
@@ -235,6 +242,7 @@ const store = new Vuex.Store({
                 minion: "minion",
                 demon: "evil",
                 fabled: "fabled",
+                loric: "custom",
               }[role.team] || "custom";
             role.firstNight = Math.abs(role.firstNight);
             role.otherNight = Math.abs(role.otherNight);
@@ -250,17 +258,20 @@ const store = new Vuex.Store({
         .filter((role) => role.name && role.ability && role.team)
         // sort by team
         .sort((a, b) => b.team.localeCompare(a.team));
-      // convert to Map without Fabled
+      // Keep Fabled and Loric roles in the shared special-role collection.
       state.roles = new Map(
         processedRoles
-          .filter((role) => role.team !== "fabled")
+          .filter((role) => role.team !== "fabled" && role.team !== "loric")
           .map((role) => [role.id, role]),
       );
-      // update Fabled to include custom Fabled from this script
+      // Update special roles to include custom Fabled and Lorics from this script.
       state.fabled = new Map([
         ...processedRoles
-          .filter((r) => r.team === "fabled")
+          .filter((r) => r.team === "fabled" || r.team === "loric")
           .map((r) => [r.id, r]),
+        ...rolesWithNightOrder
+          .filter((role) => role.team === "loric")
+          .map((role) => [role.id, role]),
         ...fabledJSON.map((role) => [role.id, role]),
       ]);
       // update extraTravelers map to only show travelers not in this script

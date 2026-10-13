@@ -76,7 +76,7 @@
     </div>
 
     <div
-      v-for="(teamRoles, team) in travelerRolesGrouped"
+      v-for="(teamRoles, team) in specialRolesGrouped"
       :key="team"
       :class="['team', team]"
     >
@@ -153,16 +153,32 @@ export default {
       });
       return rolesGrouped;
     },
-    travelerRolesGrouped: function () {
-      const travelerRolesGrouped = {};
+    specialRolesGrouped: function () {
+      const specialRolesGrouped = {};
       this.roles.forEach((role) => {
-        if (role.team !== "traveler" && role.team !== "traveller") return;
-        if (!travelerRolesGrouped[role.team]) {
-          travelerRolesGrouped[role.team] = [];
+        if (
+          role.team !== "traveler" &&
+          role.team !== "traveller" &&
+          role.team !== "fabled" &&
+          role.team !== "loric"
+        ) {
+          return;
         }
-        travelerRolesGrouped[role.team].push(role);
+        if (!specialRolesGrouped[role.team]) {
+          specialRolesGrouped[role.team] = [];
+        }
+        specialRolesGrouped[role.team].push(role);
       });
-      return travelerRolesGrouped;
+      this.$store.state.players.fabled.forEach((role) => {
+        if (role.team !== "fabled" && role.team !== "loric") return;
+        if (!specialRolesGrouped[role.team]) {
+          specialRolesGrouped[role.team] = [];
+        }
+        if (!specialRolesGrouped[role.team].some(({ id }) => id === role.id)) {
+          specialRolesGrouped[role.team].push(role);
+        }
+      });
+      return specialRolesGrouped;
     },
     playersByRole: function () {
       const players = {};
@@ -176,7 +192,7 @@ export default {
       });
       return players;
     },
-    ...mapState(["roles", "modals", "edition", "grimoire", "jinxes"]),
+    ...mapState(["roles", "fabled", "modals", "edition", "grimoire", "jinxes"]),
     ...mapState("players", ["players"]),
   },
   methods: {
