@@ -206,11 +206,7 @@
             backgroundImage: `url(${
               reminder.image
                 ? reminder.image
-                : require(
-                    '../assets/icons/' +
-                      (reminder.imageAlt || reminder.role) +
-                      '.png',
-                  )
+                : getReminderIcon(reminder)
             })`,
           }"
         ></span>
@@ -236,6 +232,7 @@
 <script>
 import Token from "./Token";
 import ActionModal from "./modals/ActionModal";
+import { getRoleIcon } from "../utils/roleIcons";
 import { mapGetters, mapState } from "vuex";
 
 export default {
@@ -294,6 +291,14 @@ export default {
     window.removeEventListener("resize", this.updateViewport);
   },
   methods: {
+    getReminderIcon(reminder) {
+      if (reminder.image) return reminder.image;
+      return getRoleIcon({
+        id: reminder.role,
+        imageAlt: reminder.imageAlt,
+        team: reminder.team,
+      });
+    },
     updateViewport() {
       this.viewportWidth = window.innerWidth;
       this.viewportHeight = window.innerHeight;

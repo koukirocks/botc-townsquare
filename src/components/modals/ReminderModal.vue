@@ -18,11 +18,7 @@
             backgroundImage: `url(${
               reminder.image
                 ? reminder.image
-                : require(
-                    '../../assets/icons/' +
-                      (reminder.imageAlt || reminder.role) +
-                      '.png',
-                  )
+                : getReminderIcon(reminder)
             })`,
           }"
         ></span>
@@ -43,6 +39,7 @@
 <script>
 import Modal from "./Modal";
 import ActionModal from "./ActionModal";
+import { getRoleIcon } from "../../utils/roleIcons";
 import { mapMutations, mapState } from "vuex";
 
 /**
@@ -51,11 +48,10 @@ import { mapMutations, mapState } from "vuex";
  * @return {function(*): {image: string|string[]|string|*, role: *, name: *, imageAlt: string|*}}
  */
 const mapReminder =
-  ({ id, image, imageAlt }) =>
+  (role) =>
   (name) => ({
-    role: id,
-    image,
-    imageAlt,
+    role: role.id,
+    image: getRoleIcon(role),
     name,
   });
 
@@ -107,6 +103,14 @@ export default {
     ...mapState("players", ["players"]),
   },
   methods: {
+    getReminderIcon(reminder) {
+      if (reminder.image) return reminder.image;
+      return getRoleIcon({
+        id: reminder.role,
+        imageAlt: reminder.imageAlt,
+        team: reminder.team,
+      });
+    },
     addReminder(reminder) {
       const player = this.$store.state.players.players[this.playerIndex];
       let value;
