@@ -74,6 +74,36 @@
         <li></li>
       </ul>
     </div>
+
+    <div
+      v-for="(teamRoles, team) in travelerRolesGrouped"
+      :key="team"
+      :class="['team', team]"
+    >
+      <aside>
+        <h4>{{ team }}</h4>
+      </aside>
+      <ul>
+        <li v-for="role in teamRoles" :class="[team]" :key="role.id">
+          <span
+            class="icon"
+            v-if="role.id"
+            :style="{
+              backgroundImage: `url(${getRoleIcon(role)})`,
+            }"
+          ></span>
+          <div class="role">
+            <span class="player" v-if="Object.keys(playersByRole).length">{{
+              playersByRole[role.id] ? playersByRole[role.id].join(", ") : ""
+            }}</span>
+            <span class="name">{{ role.name }}</span>
+            <span class="ability">{{ role.ability }}</span>
+          </div>
+        </li>
+        <li :class="[team]"></li>
+        <li :class="[team]"></li>
+      </ul>
+    </div>
   </Modal>
 </template>
 
@@ -113,26 +143,26 @@ export default {
     },
     rolesGrouped: function () {
       const rolesGrouped = {};
-      const travelerTeams = ["traveler", "traveller"];
       this.roles.forEach((role) => {
         const team = role.team || "custom";
+        if (team === "traveler" || team === "traveller") return;
         if (!rolesGrouped[team]) {
           rolesGrouped[team] = [];
         }
         rolesGrouped[team].push(role);
       });
-      const orderedRolesGrouped = {};
-      Object.keys(rolesGrouped)
-        .filter((team) => !travelerTeams.includes(team))
-        .forEach((team) => {
-          orderedRolesGrouped[team] = rolesGrouped[team];
-        });
-      Object.keys(rolesGrouped)
-        .filter((team) => travelerTeams.includes(team))
-        .forEach((team) => {
-          orderedRolesGrouped[team] = rolesGrouped[team];
-        });
-      return orderedRolesGrouped;
+      return rolesGrouped;
+    },
+    travelerRolesGrouped: function () {
+      const travelerRolesGrouped = {};
+      this.roles.forEach((role) => {
+        if (role.team !== "traveler" && role.team !== "traveller") return;
+        if (!travelerRolesGrouped[role.team]) {
+          travelerRolesGrouped[role.team] = [];
+        }
+        travelerRolesGrouped[role.team].push(role);
+      });
+      return travelerRolesGrouped;
     },
     playersByRole: function () {
       const players = {};
