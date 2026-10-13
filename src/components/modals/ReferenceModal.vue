@@ -113,14 +113,26 @@ export default {
     },
     rolesGrouped: function () {
       const rolesGrouped = {};
+      const travelerTeams = ["traveler", "traveller"];
       this.roles.forEach((role) => {
-        if (!rolesGrouped[role.team]) {
-          rolesGrouped[role.team] = [];
+        const team = role.team || "custom";
+        if (!rolesGrouped[team]) {
+          rolesGrouped[team] = [];
         }
-        rolesGrouped[role.team].push(role);
+        rolesGrouped[team].push(role);
       });
-      delete rolesGrouped["traveler"];
-      return rolesGrouped;
+      const orderedRolesGrouped = {};
+      Object.keys(rolesGrouped)
+        .filter((team) => !travelerTeams.includes(team))
+        .forEach((team) => {
+          orderedRolesGrouped[team] = rolesGrouped[team];
+        });
+      Object.keys(rolesGrouped)
+        .filter((team) => travelerTeams.includes(team))
+        .forEach((team) => {
+          orderedRolesGrouped[team] = rolesGrouped[team];
+        });
+      return orderedRolesGrouped;
     },
     playersByRole: function () {
       const players = {};
