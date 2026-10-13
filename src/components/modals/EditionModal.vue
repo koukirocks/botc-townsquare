@@ -170,31 +170,76 @@ export default {
       }
     },
     parseRoles(input) {
-      if (!Array.isArray(input) || !input.length) {
-        alert("Custom script must be a non-empty JSON array.");
+      if (!Array.isArray(input) || input.length < 5 || input.length > 201) {
+        alert("Custom script must contain between 5 and 201 entries.");
         return;
       }
-      const roles = input.map((role) => {
-        const normalizedRole =
-          typeof role === "string" ? { id: role } : { ...role };
-        if (normalizedRole.id && normalizedRole.id !== "_meta") {
-          const definition = this.$store.getters.rolesJSONbyId.get(
-            normalizedRole.id,
-          );
-          const icon = getOfficialIcon(
-            Object.assign({}, definition, normalizedRole),
-          );
-          if (icon && !normalizedRole.image) normalizedRole.image = icon;
-        }
-        return normalizedRole;
-      });
-      const metaIndex = roles.findIndex(
+      const metaEntry = input.find(
         (role) => role && typeof role === "object" && role.id === "_meta",
       );
-      let meta = {};
-      if (metaIndex > -1) {
-        meta = roles[metaIndex];
-        roles.splice(metaIndex, 1);
+      if (!metaEntry || typeof metaEntry.name !== "string" || !metaEntry.name) {
+        alert("Custom script metadata must include an _meta entry with a name.");
+        return;
+      }
+      let roles;
+      try {
+        roles = input
+          .filter((role) => role !== metaEntry)
+          .map((role) => {
+          if (typeof role === "string") {
+            return { id: role.toLocaleLowerCase() };
+          }
+          if (!role || typeof role !== "object" || Array.isArray(role)) {
+            throw new Error("Each script entry must be a role ID or character object.");
+          }
+          if (
+            typeof role.id !== "string" ||
+            !role.id ||
+            !/^[a-z0-9]+$/.test(role.id) ||
+            (role.id !== "_meta" &&
+              (!role.name ||
+                !role.team ||
+                ![
+                  "townsfolk",
+                  "outsider",
+                  "minion",
+                  "demon",
+                  "traveller",
+                  "fabled",
+                  "loric",
+                ].includes(role.team) ||
+                !role.ability))
+          ) {
+            throw new Error(
+              "Custom character objects require id, name, team, and ability.",
+            );
+          }
+          return { ...role };
+          })
+          .map((normalizedRole) => {
+            if (normalizedRole.id && normalizedRole.id !== "_meta") {
+              const definition = this.$store.getters.rolesJSONbyId.get(
+                normalizedRole.id,
+              );
+              const icon = getOfficialIcon(
+                Object.assign({}, definition, normalizedRole),
+              );
+              if (icon && !normalizedRole.image) normalizedRole.image = icon;
+            }
+            return normalizedRole;
+          });
+      } catch (error) {
+        alert(`Error loading custom script: ${error.message}`);
+        return;
+      }
+      let meta = { ...metaEntry };
+      if (
+        meta.bootlegger !== undefined &&
+        (!Array.isArray(meta.bootlegger) ||
+          meta.bootlegger.some((rule) => typeof rule !== "string"))
+      ) {
+        alert("Script metadata bootlegger must be an array of rule strings.");
+        return;
       }
       if (Array.isArray(meta.firstNight)) {
         meta.firstNight = meta.firstNight.map((id) =>
@@ -210,6 +255,16 @@ export default {
             .replace(/[^0-9a-z]/g, ""),
         );
       }
+      const customRules = Array.isArray(meta.bootlegger)
+        ? meta.bootlegger.filter(Boolean)
+        : meta.bootlegger
+          ? [String(meta.bootlegger)]
+          : [];
+      if (customRules.length) {
+        if (!roles.some((role) => role.id === "bootlegger")) {
+          roles.push({ id: "bootlegger" });
+        }
+      }
       this.$store.commit("setCustomRoles", roles);
       this.$store.commit(
         "setEdition",
@@ -218,16 +273,10 @@ export default {
       if (meta.background) {
         this.$store.commit("setBackground", meta.background);
       }
-      // check for fabled and set those too, if present
-      if (roles.some((role) => this.$store.state.fabled.has(role.id || role))) {
-        const fabled = [];
-        roles.forEach((role) => {
-          if (this.$store.state.fabled.has(role.id || role)) {
-            fabled.push(this.$store.state.fabled.get(role.id || role));
-          }
-        });
-        this.$store.commit("players/setFabled", { fabled });
-      }
+      const fabled = roles
+        .map((role) => this.$store.state.fabled.get(role.id || role))
+        .filter(Boolean);
+      this.$store.commit("players/setFabled", { fabled });
       this.isCustom = false;
     },
     ...mapMutations(["toggleModal", "setEdition"]),

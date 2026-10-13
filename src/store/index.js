@@ -25,6 +25,13 @@ const rolesWithNightOrder = rolesJSON.map((role) => ({
   otherNight: getNightOrder(nightJSON.otherNight, role.id),
 }));
 
+const fabledWithMetadata = fabledJSON.map((role) => ({
+  ...role,
+  edition: role.edition || "fabled",
+  firstNight: role.firstNight || getNightOrder(nightJSON.firstNight, role.id),
+  otherNight: role.otherNight || getNightOrder(nightJSON.otherNight, role.id),
+}));
+
 const getRolesByEdition = (edition = editionJSON[0]) => {
   return new Map(
     rolesWithNightOrder
@@ -39,7 +46,7 @@ const getTravelersNotInEdition = (edition = editionJSON[0]) => {
     rolesWithNightOrder
       .filter(
         (r) =>
-          r.team === "traveler" &&
+          (r.team === "traveler" || r.team === "traveller") &&
           r.edition !== edition.id &&
           !edition.roles.includes(r.id),
       )
@@ -68,10 +75,13 @@ const editionJSONbyId = new Map(
   editionJSON.map((edition) => [edition.id, edition]),
 );
 const rolesJSONbyId = new Map(
-  rolesWithNightOrder.map((role) => [role.id, role]),
+  [...rolesWithNightOrder, ...fabledWithMetadata].map((role) => [
+    role.id,
+    role,
+  ]),
 );
 const fabled = new Map([
-  ...fabledJSON.map((role) => [role.id, role]),
+  ...fabledWithMetadata.map((role) => [role.id, role]),
   ...rolesWithNightOrder
     .filter((role) => role.team === "loric")
     .map((role) => [role.id, role]),
@@ -206,7 +216,7 @@ const store = new Vuex.Store({
       const processedRoles = roles
         // replace numerical role object keys with matching key names
         .map((role) => {
-          if (role[0]) {
+          if (Array.isArray(role)) {
             const customKeys = Object.keys(customRole);
             const mappedRole = {};
             for (let prop in role) {
@@ -215,6 +225,8 @@ const store = new Vuex.Store({
               }
             }
             return mappedRole;
+          } else if (typeof role === "string") {
+            return { id: role };
           } else {
             return role;
           }
@@ -272,13 +284,15 @@ const store = new Vuex.Store({
         ...rolesWithNightOrder
           .filter((role) => role.team === "loric")
           .map((role) => [role.id, role]),
-        ...fabledJSON.map((role) => [role.id, role]),
+        ...fabledWithMetadata.map((role) => [role.id, role]),
       ]);
       // update extraTravelers map to only show travelers not in this script
       state.otherTravelers = new Map(
         rolesWithNightOrder
           .filter(
-            (r) => r.team === "traveler" && !roles.some((i) => i.id === r.id),
+            (r) =>
+              (r.team === "traveler" || r.team === "traveller") &&
+              !roles.some((i) => i.id === r.id),
           )
           .map((role) => [role.id, role]),
       );

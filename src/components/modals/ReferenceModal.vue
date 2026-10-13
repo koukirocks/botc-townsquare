@@ -75,6 +75,28 @@
       </ul>
     </div>
 
+    <div class="team loric" v-if="bootleggerRules.length">
+      <aside>
+        <h4>Loric</h4>
+      </aside>
+      <ul>
+        <li v-for="(rule, index) in bootleggerRules" :key="index">
+          <span
+            class="icon"
+            :style="{
+              backgroundImage: `url(${getRoleIcon(bootlegger)})`,
+            }"
+          ></span>
+          <div class="role">
+            <span class="name">Bootlegger</span>
+            <span class="ability">{{ rule }}</span>
+          </div>
+        </li>
+        <li></li>
+        <li></li>
+      </ul>
+    </div>
+
     <div
       v-for="(teamRoles, team) in specialRolesGrouped"
       :key="team"
@@ -156,21 +178,14 @@ export default {
     specialRolesGrouped: function () {
       const specialRolesGrouped = {};
       this.roles.forEach((role) => {
-        if (
-          role.team !== "traveler" &&
-          role.team !== "traveller" &&
-          role.team !== "fabled" &&
-          role.team !== "loric"
-        ) {
-          return;
-        }
+        if (!["traveler", "traveller", "fabled"].includes(role.team)) return;
         if (!specialRolesGrouped[role.team]) {
           specialRolesGrouped[role.team] = [];
         }
         specialRolesGrouped[role.team].push(role);
       });
       this.$store.state.players.fabled.forEach((role) => {
-        if (role.team !== "fabled" && role.team !== "loric") return;
+        if (role.team !== "fabled") return;
         if (!specialRolesGrouped[role.team]) {
           specialRolesGrouped[role.team] = [];
         }
@@ -179,6 +194,20 @@ export default {
         }
       });
       return specialRolesGrouped;
+    },
+    bootleggerRules: function () {
+      return Array.isArray(this.edition.bootlegger)
+        ? this.edition.bootlegger
+        : [];
+    },
+    bootlegger: function () {
+      return (
+        this.fabled.get("bootlegger") || {
+          id: "bootlegger",
+          team: "loric",
+          edition: "loric",
+        }
+      );
     },
     playersByRole: function () {
       const players = {};
