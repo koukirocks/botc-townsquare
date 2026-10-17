@@ -282,6 +282,7 @@
     </div>
     <ActionModal
       v-if="dialog"
+      :key="dialog.action"
       :title="dialog.title"
       :message="dialog.message"
       :label="dialog.label"

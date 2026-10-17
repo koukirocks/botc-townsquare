@@ -193,9 +193,16 @@ export default {
             throw new Error("Each script entry must be a role ID or character object.");
           }
           if (
+            typeof role.id === "string" &&
+            role.id &&
+            Object.keys(role).length === 1
+          ) {
+            return { id: role.id.toLocaleLowerCase() };
+          }
+          if (
             typeof role.id !== "string" ||
             !role.id ||
-            !/^[a-z0-9]+$/.test(role.id) ||
+            !/^[a-z0-9]+$/.test(role.id.toLocaleLowerCase()) ||
             (role.id !== "_meta" &&
               (!role.name ||
                 !role.team ||
@@ -214,13 +221,21 @@ export default {
               "Custom character objects require id, name, team, and ability.",
             );
           }
-          return { ...role };
+          return { ...role, id: role.id.toLocaleLowerCase() };
           })
           .map((normalizedRole) => {
             if (normalizedRole.id && normalizedRole.id !== "_meta") {
               const definition = this.$store.getters.rolesJSONbyId.get(
                 normalizedRole.id,
               );
+              if (
+                !definition &&
+                (!normalizedRole.name ||
+                  !normalizedRole.team ||
+                  !normalizedRole.ability)
+              ) {
+                throw new Error(`Unknown role ID: ${normalizedRole.id}`);
+              }
               const icon = getOfficialIcon(
                 Object.assign({}, definition, normalizedRole),
               );

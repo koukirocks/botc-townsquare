@@ -79,7 +79,7 @@ export default {
           }
         }
       });
-      return [...availableRoles, ...travelers, {}];
+      return [{}, ...availableRoles, ...travelers];
     },
     ...mapState(["modals", "roles", "session"]),
     ...mapState("players", ["players"]),
