@@ -170,6 +170,21 @@ export default {
       }
     },
     parseRoles(input) {
+      const normalizeRoleId = (id) =>
+        String(id)
+          .toLocaleLowerCase()
+          .replace(/[^0-9a-z]/g, "");
+      const usedRoleIds = new Set();
+      const createGeneratedRoleId = (name, index) => {
+        const baseId = normalizeRoleId(name) || `customrole${index + 1}`;
+        let generatedId = baseId;
+        let suffix = 2;
+        while (usedRoleIds.has(generatedId)) {
+          generatedId = `${baseId}${suffix}`;
+          suffix += 1;
+        }
+        return generatedId;
+      };
       if (!Array.isArray(input) || input.length < 5 || input.length > 201) {
         alert("Custom script must contain between 5 and 201 entries.");
         return;
@@ -185,24 +200,34 @@ export default {
       try {
         roles = input
           .filter((role) => role !== metaEntry)
-          .map((role) => {
+          .map((role, index) => {
           if (typeof role === "string") {
-            return { id: role.toLocaleLowerCase() };
+            const normalizedId = normalizeRoleId(role);
+            if (!normalizedId) {
+              throw new Error(
+                "Role references must contain at least one ASCII letter or number.",
+              );
+            }
+            usedRoleIds.add(normalizedId);
+            return { id: normalizedId };
           }
           if (!role || typeof role !== "object" || Array.isArray(role)) {
             throw new Error("Each script entry must be a role ID or character object.");
           }
+          let normalizedId =
+            typeof role.id === "string" ? normalizeRoleId(role.id) : "";
+          if (!normalizedId && typeof role.name === "string" && role.name) {
+            normalizedId = createGeneratedRoleId(role.name, index);
+          }
           if (
-            typeof role.id === "string" &&
-            role.id &&
+            normalizedId &&
             Object.keys(role).length === 1
           ) {
-            return { id: role.id.toLocaleLowerCase() };
+            return { id: normalizedId };
           }
           if (
             typeof role.id !== "string" ||
-            !role.id ||
-            !/^[a-z0-9]+$/.test(role.id.toLocaleLowerCase()) ||
+            !normalizedId ||
             (role.id !== "_meta" &&
               (!role.name ||
                 !role.team ||
@@ -221,7 +246,8 @@ export default {
               "Custom character objects require id, name, team, and ability.",
             );
           }
-          return { ...role, id: role.id.toLocaleLowerCase() };
+          usedRoleIds.add(normalizedId);
+          return { ...role, id: normalizedId };
           })
           .map((normalizedRole) => {
             if (normalizedRole.id && normalizedRole.id !== "_meta") {
